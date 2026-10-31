@@ -64,6 +64,14 @@ describe('fixes are file-specific', () => {
   });
 });
 
+describe('stories', () => {
+  it('start at the attacker, not at earlier innocent traffic', async () => {
+    const r = await run('arp-spoof'), f = r.findings[0]!;
+    const start = f.story.find((s) => s.key === 'start')!;
+    expect(r.rows[start.packets[0]! - 1]!.srcMac).toBe('de:ad:be:ef:00:66');
+  });
+});
+
 describe('verify fix and baseline', () => {
   it('marks findings RESOLVED after the fix', async () => {
     const rows = diffReports(await run('mixed-incident'), await run('mixed-incident-after-fix'));

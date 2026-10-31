@@ -15,7 +15,10 @@ function evidenceOf(ctx: Ctx, nos: number[]): Evidence[] {
 function story(ctx: Ctx, c: Case, f: Finding): StoryStep[] {
   const t = TEMPLATES[f.hypothesis]!, facts = c.facts;
   const evNos = f.evidence.map((e) => e.no);
-  const first = f.evidence[0];
+  // The story starts at the packet behind the strongest signal, which may come after earlier innocent evidence.
+  const strongest = [...c.signals].sort((x, y) => (y.weights[f.hypothesis] ?? 0) - (x.weights[f.hypothesis] ?? 0))[0];
+  const startNo = strongest?.packets.length ? Math.min(...strongest.packets) : f.evidence[0]?.no;
+  const first = startNo ? evidenceOf(ctx, [startNo])[0] : undefined;
   const before = ctx.flows.filter((x) => x.t0 < c.t0 && (c.hosts.includes(x.a) || c.hosts.includes(x.b))).slice(0, 4);
   const edgeOf = (pn: number, bad = true) => { const p = ctx.get(pn); return { from: p.src ?? p.srcMac ?? '?', to: p.dst ?? p.dstMac ?? '?', label: p.proto, bad }; };
   const steps: StoryStep[] = [
