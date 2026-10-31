@@ -130,14 +130,14 @@ export default function ReportPage() {
     page.scrollTo({ top: el.parentElement!.offsetTop + el.offsetTop });
   }, [c.tab]);
   if (!r) return (
-    <div className="pad"><h1 className="disp h2 rise d1" style={{ maxWidth: '16ch' }}>No capture open yet.</h1>
-      <p className="muted rise d2">Open a file or a lab sample first. Reports live only in this tab.</p>
+    <div className="center"><h1 className="disp h2 rise d1">No capture open yet.</h1>
+      <p className="muted rise d2" style={{ fontSize: 17 }}>Open a file or a lab sample first. Reports live only in this tab.</p>
       <div className="rise d3"><Scan onClick={() => go('/')}>Open a capture</Scan></div></div>
   );
   const n = r.findings.filter((f) => f.lane !== 'BENIGN').length;
   const [head, ...rest] = r.headline.split('. ');
   return (
-    <div className="pad" style={{ paddingTop: 16 }}>
+    <div className="pad" style={{ paddingTop: 36 }}>
       <p className="sm" style={{ margin: '0 0 6px' }}>{r.defense.fileName}, SHA-256 {r.defense.sha256.slice(0, 16)}...</p>
       <h1 className="disp report-title rise d1">{head}. {rest.length > 0 && <span className="ac">{rest.join('. ')}</span>}</h1>
       <div>

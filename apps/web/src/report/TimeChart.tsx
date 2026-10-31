@@ -10,7 +10,7 @@ const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : n >
 export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
   const c = useCase();
   const [metric, setMetric] = useState<'pkts' | 'bytes'>('pkts');
-  const [bins, setBins] = useState(compact ? 80 : 80);
+  const [bins, setBins] = useState(80);
   const [focus, setFocus] = useState('all');
   const [view, setView] = useState<[number, number] | null>(null);
   const [tip, setTip] = useState<{ x: number; i: number } | null>(null);
@@ -37,12 +37,18 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
   const fmtV = (v: number) => (metric === 'pkts' ? String(v) : kb(v));
   const places = b - a < 10 ? 2 : b - a < 100 ? 1 : 0;
   const stamp = (t: number) => `+${(t - r.t0).toFixed(places)} s`;
+  const stampAbs = (t: number) => `+${(t - r.t0).toFixed(span < 10 ? 2 : 1)} s`;
+  const pick = (f: Report['findings'][number]) => {
+    if (focus === f.id) { setFocus('all'); setView(null); return; }
+    const pad = Math.max((f.t1 - f.t0) * 0.1, span * 0.01);
+    setFocus(f.id); setView([Math.max(r.t0, f.t0 - pad), Math.min(r.t1 + 0.001, f.t1 + pad)]);
+  };
   const frac = (e: React.PointerEvent) => { const q = area.current!.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - q.left) / q.width)); };
   const up = (e: React.PointerEvent) => {
     if (!drag) return;
     const x = frac(e), lo = Math.min(drag[0], x), hi = Math.max(drag[0], x);
     setDrag(null);
-    if (hi - lo > 0.015) { setView([a + lo * (b - a), a + hi * (b - a)]); return; }
+    if (!compact && hi - lo > 0.015) { setView([a + lo * (b - a), a + hi * (b - a)]); return; }
     const row = data[Math.min(bins - 1, Math.floor(x * bins))];
     if (row?.first) { c.setJump(row.first); c.setTab('investigator'); }
   };
@@ -56,10 +62,7 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
           {([['pkts', 'Packets'], ['bytes', 'Bytes']] as const).map(([k, l]) => <button type="button" key={k} className="btn" aria-pressed={metric === k} onClick={() => setMetric(k)}>{l}</button>)}
           <span className="sm" style={{ marginLeft: 12 }}>Detail</span>
           {DETAIL.map(([l, n]) => <button type="button" key={l} className="btn" aria-pressed={bins === n} onClick={() => setBins(n)}>{l}</button>)}
-          {shown.length > 0 && <><span className="sm" style={{ marginLeft: 12 }}>Highlight</span>
-            <button type="button" className="btn" aria-pressed={focus === 'all'} onClick={() => setFocus('all')}>All problems</button>
-            {shown.map((f) => <button type="button" key={f.id} className="btn" aria-pressed={focus === f.id} onClick={() => setFocus(f.id)}>{f.title}</button>)}</>}
-          {view && <button type="button" className="btn" style={{ marginLeft: 12 }} onClick={() => setView(null)}>Reset zoom</button>}
+          {(view || focus !== 'all') && <button type="button" className="btn" style={{ marginLeft: 12 }} onClick={() => { setView(null); setFocus('all'); }}>Show whole capture</button>}
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '56px minmax(0, 1fr)', gap: 8 }}>
@@ -75,24 +78,19 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
                 {d.hot > 0 && <i className="hot" style={{ height: `${(d.hot / max) * 100}%` }} />}
               </div>)}
             </div>
-            {drag && <div className="chart-sel" style={{ left: `${Math.min(...drag) * 100}%`, width: `${Math.abs(drag[0] - drag[1]) * 100}%` }} />}
+            {drag && !compact && <div className="chart-sel" style={{ left: `${Math.min(...drag) * 100}%`, width: `${Math.abs(drag[0] - drag[1]) * 100}%` }} />}
             {tip && tipData && !drag && <div className="chart-tip" style={tip.x > 0.65 ? { right: `${(1 - tip.x) * 100}%` } : { left: `${tip.x * 100}%` }}>{stamp(a + (tip.i / bins) * (b - a))}: {fmtV(tipData.all)}{tipData.hot ? `, ${fmtV(tipData.hot)} proof` : ''}</div>}
           </div>
           <div className="dat" aria-hidden="true" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 4 }}>{[0, 0.25, 0.5, 0.75, 1].map((f) => <span key={f}>{stamp(a + f * (b - a))}</span>)}</div>
-          {shown.length > 0 && <div style={{ marginTop: 8 }}>
-            {shown.map((f) => {
-              const l = Math.max(0, (f.t0 - a) / (b - a)), w = Math.min(1 - l, (f.t1 - Math.max(f.t0, a)) / (b - a));
-              return (
-                <div key={f.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 220px) minmax(0, 1fr)', gap: 10, alignItems: 'center' }}>
-                  <span className="sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</span>
-                  <button type="button" className={`chart-lane ${f.lane}`} aria-label={`Zoom to ${f.title}`} onClick={() => setView([Math.max(r.t0, f.t0 - span * 0.02), Math.min(r.t1 + 0.001, f.t1 + span * 0.02)])}><i style={{ left: `${l * 100}%`, width: `${Math.max(0, w) * 100}%` }} /></button>
-                </div>
-              );
-            })}
-          </div>}
         </div>
       </div>
-      <p className="sm" style={{ marginBottom: 0 }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? 'Click a bar to open its packets.' : 'Drag across the chart to zoom, click a bar to open its packets, click a coloured strip to zoom to that problem.'}</p>
+      <p className="sm" style={{ marginBottom: compact ? 0 : undefined }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? 'Click a bar to open its packets.' : 'Drag across the chart to zoom in. Click a bar to open its packets.'}</p>
+      {!compact && shown.length > 0 && <div role="group" aria-label="Problems in this capture">
+        <h3 className="sm" style={{ margin: '16px 0 4px' }}>Click a problem to focus on it</h3>
+        {shown.map((f) => <button type="button" key={f.id} className="tl-prob" aria-pressed={focus === f.id} onClick={() => pick(f)}>
+          <span>{f.title}</span><span className="dat">{stampAbs(f.t0)} to {stampAbs(f.t1)}</span><Lane l={f.lane} />
+        </button>)}
+      </div>}
       {!compact && r.findings.filter((f) => f.lane === 'BENIGN').map((f) => <p key={f.id} className="sm"><Lane l="BENIGN" /> {f.title}: not marked in red.</p>)}
     </div>
   );

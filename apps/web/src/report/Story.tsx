@@ -77,7 +77,7 @@ export function StoryPlayer({ r }: { r: Report }) {
         <p style={{ fontSize: 17, lineHeight: 1.5, marginTop: 0, overflowWrap: 'anywhere' }} aria-live="polite">{text}</p>
         {s.packets.length > 0 && <p><Proof nos={s.packets} /></p>}
         <p style={{ lineHeight: 1.5 }}><span className="sm">In real life: </span>{s.finding.analogy}</p>
-        {told.length > 0 && <div style={{ marginTop: 16 }}>
+        {told.length > 1 && <div style={{ marginTop: 16 }}>
           <p className="sm">Choose a story</p>
           {problems.length > 1 && <button type="button" className={`rowbtn ${sel === 'all' ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr', padding: '8px 0' }} onClick={() => setSel('all')}>Play whole incident</button>}
           {told.map((f) => <button type="button" key={f.id} className={`rowbtn ${sel === f.id ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr', padding: '8px 0' }} onClick={() => setSel(f.id)}>{f.title}</button>)}

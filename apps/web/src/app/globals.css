@@ -79,9 +79,12 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .mark { font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: .01em }
 .nav { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center }
 .page { position: relative; z-index: 2; flex: 1 1 auto; min-height: 0; overflow: auto; box-sizing: border-box }
-.pad { padding: 0 40px 96px; box-sizing: border-box; min-height: 100% }
-.hero { min-height: calc(100vh - 80px); display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; padding: 0 40px 96px; box-sizing: border-box }
-.h1 { margin: 0; max-width: 3.9em; font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: clamp(64px, min(10.3vw, 15.5vh), 148px); line-height: .9; text-transform: uppercase }
+.pad { padding: 48px 40px 96px; box-sizing: border-box; min-height: 100% }
+.center { min-height: calc(100vh - 90px); box-sizing: border-box; padding: 48px 24px 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center }
+.center .h2 { max-width: 20ch }
+.center p { margin: 0; max-width: 62ch; line-height: 1.5 }
+.hero { min-height: calc(100vh - 90px); display: flex; flex-direction: column; justify-content: flex-end; gap: 24px; padding: 56px 40px 88px; box-sizing: border-box }
+.h1 { margin: 0; max-width: 3.9em; font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: clamp(56px, min(9.4vw, 13vh), 132px); line-height: .9; text-transform: uppercase }
 .h2 { margin: 0; font-size: clamp(38px, 5vw, 72px); text-wrap: balance }
 .h3 { margin: 0; font-size: clamp(26px, 3vw, 38px) }
 .veil { background: var(--veil) }
@@ -103,7 +106,7 @@ section { content-visibility: auto; contain-intrinsic-size: auto 400px }
 .lane-BENIGN { border-color: var(--bar); color: var(--muted) }
 .rowbtn { display: grid; width: 100%; align-items: baseline; gap: 16px; padding: 12px 0; background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; text-align: left }
 .rowbtn:hover { background: var(--scan) }
-.rowbtn.on { box-shadow: inset 3px 0 0 var(--ac); padding-left: 8px }
+.rowbtn.on { box-shadow: inset 3px 0 0 var(--ac); padding-left: 12px; background: var(--scan) }
 .lanes { display: grid; gap: 2px }
 .lane-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 14px 16px; background: var(--veil); border: 0; border-left: 3px solid var(--bar); color: inherit; font: inherit; text-align: left }
 .lane-row:hover { background: var(--scan) }
@@ -121,13 +124,15 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 84px; border-bottom: 1px solid var(--bar) }
 .bars i { flex: 1 1 0; background: var(--bar); min-height: 1px; display: block }
 .bars i.hot { background: var(--ac) }
-.pk { display: grid; grid-template-columns: 16px 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
+.pk { transition: top .24s cubic-bezier(.3, .7, .2, 1); display: grid; grid-template-columns: 16px 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
 .pk > span { overflow: hidden; text-overflow: ellipsis }
 .pk:hover { background: var(--scan) }
 .pk.on { background: var(--ac); color: var(--on); position: absolute }
 .pk .tw { transition: transform .15s ease }
 .pk.on .tw { transform: rotate(90deg) }
-.pk-detail { position: absolute; left: 0; right: 0; box-sizing: border-box; padding: 14px; background: var(--bg); border: 1px solid var(--ac); border-top: 0; overflow: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px }
+@keyframes pkdrop { from { clip-path: inset(0 0 100% 0); opacity: .4; transform: translateY(-8px) } to { clip-path: inset(0 0 0 0); opacity: 1; transform: none } }
+.pk-detail ::-webkit-scrollbar { width: 6px; height: 6px }
+.pk-detail { animation: pkdrop .26s cubic-bezier(.3, .7, .2, 1) both; position: absolute; left: 0; right: 0; box-sizing: border-box; padding: 14px; background: var(--bg); border: 1px solid var(--ac); border-top: 0; overflow: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px }
 .flt { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 }
 .flt .btn { font-family: var(--font-mono), monospace; font-size: 12px; padding: 5px 9px }
 .pk.bad:not(.on) { color: var(--ac) }
@@ -149,9 +154,9 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 .chart-bars > div:hover i { filter: brightness(1.3) }
 .chart-sel { position: absolute; top: 0; bottom: 0; background: var(--scan); border-inline: 1px solid var(--ac); pointer-events: none }
 .chart-tip { position: absolute; top: 4px; padding: 3px 8px; background: var(--bg); border: 1px solid var(--line); font-family: var(--font-mono), monospace; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 2 }
-.chart-lane { position: relative; height: 14px; display: block; width: 100%; background: none; border: 0; padding: 0 }
-.chart-lane i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; background: var(--bar) }
-.chart-lane.ATTACK i { background: var(--ac) } .chart-lane.FAULT i { background: var(--fg) } .chart-lane.INCONCLUSIVE i { background: var(--tint) }
+.tl-prob { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; width: 100%; padding: 10px 12px; background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; text-align: left }
+.tl-prob:hover, .tl-prob[aria-pressed="true"] { background: var(--scan) }
+.tl-prob[aria-pressed="true"] { box-shadow: inset 3px 0 0 var(--ac) }
 .stage-svg text { font-family: var(--font-mono), monospace; font-size: 11px; fill: var(--fg) }
 .pbar { height: 8px; background: var(--line) }
 .pbar i { display: block; height: 100%; background: var(--bar) }
@@ -169,9 +174,21 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 .strip .g { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 0 6px }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
-.sign { min-height: calc(100vh - 80px); display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 64px; align-items: end; padding: 0 40px 96px; box-sizing: border-box }
+.sign { min-height: calc(100vh - 90px); display: flex; align-items: center; justify-content: center; padding: 40px 16px 72px; box-sizing: border-box }
+.card { width: min(440px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 30px 32px; background: var(--panel); border: 1px solid var(--line) }
+.pw { position: relative; display: block; margin-top: 6px }
+.pw .cr-input { margin-top: 0; padding-right: 46px }
+.eye { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 36px; height: 36px; display: grid; place-items: center; background: none; border: 0; color: var(--muted); padding: 0; transition: color .2s ease }
+.eye:hover, .eye:focus-visible { color: var(--ac) }
+.eye svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; overflow: visible }
+.eye .lid { transform-origin: 12px 12px; transition: transform .28s cubic-bezier(.3, .7, .2, 1) }
+.eye .iris { transform-origin: 12px 12px; transform: scale(.55); opacity: .6; transition: transform .28s cubic-bezier(.3, .7, .2, 1), opacity .2s ease }
+.eye .slash { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset .28s cubic-bezier(.3, .7, .2, 1) }
+.eye[aria-pressed="true"] .iris { transform: scale(1); opacity: 1 }
+.eye[aria-pressed="true"] .slash { stroke-dashoffset: 1 }
+.eye:active .lid { transform: scaleY(.8) }
 @media (max-width: 860px) {
-  .grid-2, .grid-side, .sign, .story, .pk-detail { grid-template-columns: minmax(0, 1fr) }
+  .grid-2, .grid-side, .story, .pk-detail { grid-template-columns: minmax(0, 1fr) }
   .story { height: auto } .story-g { height: 260px; flex: none } .story-r { overflow: visible }
   .lane-row { grid-template-columns: minmax(0, 1fr) auto }
   .lane-row .sm { grid-column: 1 / -1 }
@@ -179,13 +196,15 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .tabs .levels { margin-left: 0 }
   .head { padding: 10px 16px; font-size: 12px }
   .nav { gap: 2px 16px }
-  .pad, .hero, .sign { padding-left: 16px; padding-right: 16px }
-  .hero, .sign { min-height: calc(100dvh - 120px) }
+  .pad, .hero { padding-left: 16px; padding-right: 16px }
+  .hero, .sign, .center { min-height: calc(100dvh - 120px) }
+  .pad { padding-top: 28px }
   .strip { display: none }
   .pk { grid-template-columns: 54px 120px 120px 60px minmax(160px, 1fr) } .pk .hide-sm { display: none }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rise, .flip { animation: none }
+  .rise, .flip, .pk-detail { animation: none }
+  .pk { transition: none }
   .scan:hover .line { animation: none; opacity: 0 }
   .cr-root, .cr-root * { transition: none }
   .hv-wave path, .hv-fill svg, .hv .lb, .mt svg { transition: none }

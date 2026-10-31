@@ -28,10 +28,10 @@ export default function Security() {
   };
   const ok = rows.filter((r) => r.pass).length, d = c.report?.defense;
   return (
-    <div className="pad">
+    <div className={rows.length || running || d ? 'pad' : 'center'}>
       <h1 className="disp h2 rise d1" style={{ maxWidth: '18ch' }}>A capture file is <span className="ac">an attack surface.</span></h1>
       <p className="muted rise d2" style={{ maxWidth: '62ch', lineHeight: 1.5, fontSize: 17 }}>This page attacks PacketMD with files built to break parsers. They go through the real gate and the real Worker, in your browser, right now.</p>
-      <div className="rise d3" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', margin: '20px 0' }}>
+      <div className="rise d3" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: rows.length || running || d ? undefined : 'center', margin: '20px 0' }}>
         <Scan onClick={() => void run()} disabled={running}>{running ? `Running ${rows.length + 1}` : 'Run the red-team self-test'}</Scan>
         <span className="dat" role="status">{rows.length > 0 && `${ok} of ${rows.length} passed`}</span>
       </div>
