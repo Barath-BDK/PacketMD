@@ -2,7 +2,7 @@
 
 PacketMD reads a packet capture and tells you whether your network has a fault or is under attack. It explains the problem in plain language, shows the exact packets that prove each claim, and writes a fix using the real addresses from your file. The capture never leaves your device.
 
-Built for the IIITDM Kancheepuram cybersecurity hackathon, Network Track. Demo video: *link to be added before submission*.
+Built for the IIITDM Kancheepuram cybersecurity hackathon, Network Track. Live site: https://packetmd.vercel.app. Demo video: *link to be added before submission*.
 
 ## The problem
 
@@ -33,6 +33,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 - Verify Fix: open a second capture and get RESOLVED, STILL PRESENT or NEW per finding
 - Causal links between symptoms and root causes, blast radius, and a fix-first order
 - Beginner, Technical and Analyst reading levels
+- Timeline you can adjust: packets or bytes, level of detail, drag to zoom, highlight one problem
 - Investigator: packet list, decoded tree, hex view with field highlighting, our own filter language, Follow Stream, copy as Wireshark filter or BPF
 - Activity: domain attribution from SNI, HTTP Host and DNS, inferred traffic class, offline reputation checks
 - Known-good baseline, Markdown and JSON export, print to PDF, optional accounts and share links
