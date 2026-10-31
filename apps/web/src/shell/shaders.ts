@@ -115,7 +115,7 @@ vec2 ridge(vec2 p,float asp){
 vec2 npt(vec2 c){return c+.22+.56*vec2(hs(c),hs(c+13.7));}
 vec2 network(vec2 p){
   vec2 q=p*6.5,id=floor(q);
-  float w=fwidth(q.y)*1.1,l=0.,k=0.;
+  float w=fwidth(q.y)*1.6,l=0.,k=0.;
   for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
     vec2 c=id+vec2(float(i),float(j)),a=npt(c);
     float dn=length(q-a);
@@ -129,7 +129,7 @@ vec2 network(vec2 p){
       vec2 b=npt(c+d),ab=b-a;
       float h=clamp(dot(q-a,ab)/dot(ab,ab),0.,1.);
       float ln=1.-smoothstep(0.,w,length(q-a-ab*h));
-      l=max(l,ln*.5);
+      l=max(l,ln*.95);
       if(s>.68){
         float t=fract(T*(.05+.09*s)+s*17.);
         k=max(k,1.-smoothstep(.03,.05+w,length(q-a-ab*t)));

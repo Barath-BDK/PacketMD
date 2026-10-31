@@ -137,7 +137,7 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 .tree button { display: block; font-family: var(--font-mono), monospace; font-size: 12px; line-height: 1.6; text-align: left; overflow-wrap: anywhere }
 .tree button:hover, .tree button.on { color: var(--ac) }
 .stage-svg { width: 100%; height: 100%; display: block; min-height: 0 }
-.story { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr); gap: 24px; height: calc(100vh - 150px); min-height: 460px }
+.story { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr); gap: 24px; height: calc(100vh - 136px); min-height: 330px }
 .story-l { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 16px; background: var(--veil) }
 .story-g { flex: 1 1 auto; min-height: 0 }
 .story-r { overflow: auto; min-height: 0; padding-right: 8px }
@@ -165,6 +165,7 @@ input[type=range]::-moz-range-track { height: 2px; background: var(--bar) }
 input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; border-radius: 0; background: var(--ac) }
 .strip { position: fixed; z-index: 5; left: 40px; right: 12px; bottom: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 22px; font-family: var(--mono); font-size: var(--cap); pointer-events: none }
 .strip > * { pointer-events: auto }
+.strip:has(.g + .g) { background: var(--panel); border: 1px solid var(--line); padding: 6px 8px; left: auto; max-width: min(860px, calc(100vw - 24px)) }
 .strip .g { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 0 6px }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
