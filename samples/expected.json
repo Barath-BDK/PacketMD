@@ -1,0 +1,171 @@
+{
+  "normal-baseline": {
+    "findings": [],
+    "allowed": [],
+    "note": "A clean network, also used to save a baseline"
+  },
+  "tcp-retransmissions-congestion": {
+    "findings": [
+      "tcp-loss"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "tcp-resets": {
+    "findings": [
+      "tcp-reset"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "dns-failures": {
+    "findings": [
+      "dns-failure"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "duplicate-ip": {
+    "findings": [
+      "duplicate-ip"
+    ],
+    "allowed": [],
+    "note": "Static device inside the DHCP pool"
+  },
+  "arp-spoof": {
+    "findings": [
+      "arp-spoof"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "mtu-blackhole": {
+    "findings": [
+      "mtu-blackhole"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "port-scan-vertical": {
+    "findings": [
+      "port-scan"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "port-scan-horizontal": {
+    "findings": [
+      "port-scan"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "port-scan-benign-scanner": {
+    "findings": [],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Hard negative: declared vulnerability scanner finishing real connections"
+  },
+  "dns-hijack": {
+    "findings": [
+      "dns-hijack"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "rogue-dhcp-benign-router": {
+    "findings": [
+      "rogue-dhcp-misconfig"
+    ],
+    "allowed": [],
+    "note": "Home router plugged in by accident"
+  },
+  "rogue-dhcp-malicious": {
+    "findings": [
+      "rogue-dhcp-attack"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "syn-flood": {
+    "findings": [
+      "syn-flood"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "server-outage": {
+    "findings": [
+      "server-outage"
+    ],
+    "allowed": [],
+    "note": "Fault twin of syn-flood"
+  },
+  "failover-gratuitous-arp": {
+    "findings": [],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Hard negative: redundant gateway taking over"
+  },
+  "dhcp-relay": {
+    "findings": [],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Hard negative: relay addresses differ, server identity does not"
+  },
+  "llmnr-poisoning": {
+    "findings": [
+      "llmnr-poison"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "mixed-incident": {
+    "findings": [
+      "arp-spoof",
+      "mtu-blackhole"
+    ],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Demo centrepiece: everything is broken, one fault and one attack"
+  },
+  "beacon-fixed-interval": {
+    "findings": [
+      "beaconing"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "dga-lookups": {
+    "findings": [
+      "dga-domain"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "dns-tunnel": {
+    "findings": [
+      "dns-tunnel"
+    ],
+    "allowed": [],
+    "note": ""
+  },
+  "hidden-domain-ech": {
+    "findings": [],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Domain must show as hidden, never guessed"
+  },
+  "mixed-incident-after-fix": {
+    "findings": [],
+    "allowed": [
+      "benign"
+    ],
+    "note": "Same network after the fixes, used by Verify Fix"
+  }
+}

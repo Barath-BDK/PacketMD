@@ -1,0 +1,29 @@
+{
+  "name": "packetmd",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @packetmd/web dev",
+    "build": "pnpm --filter @packetmd/web build",
+    "cli": "tsx packages/cli/src/index.ts",
+    "test": "vitest run",
+    "fuzz": "vitest run tests/fuzz.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm --filter @packetmd/web typecheck",
+    "lint": "pnpm --filter @packetmd/web lint",
+    "accuracy": "tsx scripts/accuracy.ts",
+    "handshake": "tsx scripts/handshake.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "fast-check": "^3.23.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "@packetmd/core": "workspace:*"
+  },
+  "type": "module"
+}

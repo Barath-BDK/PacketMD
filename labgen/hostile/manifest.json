@@ -1,0 +1,122 @@
+[
+  {
+    "file": "renamed-exe.pcap",
+    "uploadName": "renamed-exe.pcap",
+    "attack": "Windows program renamed to .pcap",
+    "expect": "rejected"
+  },
+  {
+    "file": "zip-polyglot.pcap",
+    "uploadName": "zip-polyglot.pcap",
+    "attack": "Zip archive named as a capture",
+    "expect": "rejected"
+  },
+  {
+    "file": "ext-mismatch.pcapng",
+    "uploadName": "ext-mismatch.pcapng",
+    "attack": "pcap bytes under a .pcapng name",
+    "expect": "rejected"
+  },
+  {
+    "file": "truncated-header.pcap",
+    "uploadName": "truncated-header.pcap",
+    "attack": "Valid signature, header cut short",
+    "expect": "rejected"
+  },
+  {
+    "file": "pcapng-block-past-eof.pcapng",
+    "uploadName": "pcapng-block-past-eof.pcapng",
+    "attack": "Block length larger than the file",
+    "expect": "survives"
+  },
+  {
+    "file": "pcapng-block-zero.pcapng",
+    "uploadName": "pcapng-block-zero.pcapng",
+    "attack": "Block length 0, the infinite loop trap",
+    "expect": "survives"
+  },
+  {
+    "file": "record-length-lie.pcap",
+    "uploadName": "record-length-lie.pcap",
+    "attack": "Record header claims millions of bytes",
+    "expect": "survives"
+  },
+  {
+    "file": "snaplen-4gb.pcap",
+    "uploadName": "snaplen-4gb.pcap",
+    "attack": "Header snaplen of 4 GB",
+    "expect": "survives"
+  },
+  {
+    "file": "many-tiny-records.pcap",
+    "uploadName": "many-tiny-records.pcap",
+    "attack": "A flood of 30,000 minimal records",
+    "expect": "survives"
+  },
+  {
+    "file": "dns-pointer-loop.pcap",
+    "uploadName": "dns-pointer-loop.pcap",
+    "attack": "DNS compression pointer that points at itself",
+    "expect": "evasion"
+  },
+  {
+    "file": "dns-max-labels.pcap",
+    "uploadName": "dns-max-labels.pcap",
+    "attack": "DNS name of maximum-length labels",
+    "expect": "evasion"
+  },
+  {
+    "file": "hostile-hostnames.pcap",
+    "uploadName": "hostile-hostnames.pcap",
+    "attack": "Hostnames carrying HTML, bidi overrides and null bytes",
+    "expect": "survives"
+  },
+  {
+    "file": "ipv4-ihl-low.pcap",
+    "uploadName": "ipv4-ihl-low.pcap",
+    "attack": "IPv4 header length below 20 bytes",
+    "expect": "evasion"
+  },
+  {
+    "file": "tcp-offset-past-end.pcap",
+    "uploadName": "tcp-offset-past-end.pcap",
+    "attack": "TCP data offset past the end of the packet",
+    "expect": "evasion"
+  },
+  {
+    "file": "overlapping-fragments.pcap",
+    "uploadName": "overlapping-fragments.pcap",
+    "attack": "IP fragments that overlap each other",
+    "expect": "evasion"
+  },
+  {
+    "file": "huge-options.pcap",
+    "uploadName": "huge-options.pcap",
+    "attack": "TCP option claiming more bytes than exist",
+    "expect": "evasion"
+  },
+  {
+    "file": "eicar-payload.pcap",
+    "uploadName": "eicar-payload.pcap",
+    "attack": "Antivirus test string inside a payload",
+    "expect": "survives"
+  },
+  {
+    "file": "path-traversal-name.pcap",
+    "uploadName": "../../etc/passwd.pcap",
+    "attack": "Filename with ../ traversal",
+    "expect": "survives"
+  },
+  {
+    "file": "unicode-name.pcap",
+    "uploadName": "invoice\u202egnp.pcap",
+    "attack": "Filename using a right-to-left override",
+    "expect": "survives"
+  },
+  {
+    "file": "wifi-linktype.pcap",
+    "uploadName": "wifi-linktype.pcap",
+    "attack": "802.11 capture, a link type outside scope",
+    "expect": "survives"
+  }
+]

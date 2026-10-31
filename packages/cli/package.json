@@ -1,0 +1,1 @@
+{ "name": "@packetmd/cli", "version": "0.1.0", "private": true, "type": "module", "bin": { "packetmd": "./src/index.ts" }, "dependencies": { "@packetmd/core": "workspace:*" } }

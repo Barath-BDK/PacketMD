@@ -1,0 +1,275 @@
+{
+  "samples": 24,
+  "precision": 1,
+  "recall": 1,
+  "falseAlarmRate": 0,
+  "hardNegatives": 6,
+  "rows": [
+    {
+      "file": "normal-baseline",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "tcp-retransmissions-congestion",
+      "expected": [
+        "tcp-loss"
+      ],
+      "got": [
+        "tcp-loss"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "tcp-resets",
+      "expected": [
+        "tcp-reset"
+      ],
+      "got": [
+        "tcp-reset"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "dns-failures",
+      "expected": [
+        "dns-failure"
+      ],
+      "got": [
+        "dns-failure"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "duplicate-ip",
+      "expected": [
+        "duplicate-ip"
+      ],
+      "got": [
+        "duplicate-ip"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "arp-spoof",
+      "expected": [
+        "arp-spoof"
+      ],
+      "got": [
+        "arp-spoof"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "mtu-blackhole",
+      "expected": [
+        "mtu-blackhole"
+      ],
+      "got": [
+        "mtu-blackhole"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "port-scan-vertical",
+      "expected": [
+        "port-scan"
+      ],
+      "got": [
+        "port-scan"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "port-scan-horizontal",
+      "expected": [
+        "port-scan"
+      ],
+      "got": [
+        "port-scan"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "port-scan-benign-scanner",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "dns-hijack",
+      "expected": [
+        "dns-hijack"
+      ],
+      "got": [
+        "dns-hijack"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "rogue-dhcp-benign-router",
+      "expected": [
+        "rogue-dhcp-misconfig"
+      ],
+      "got": [
+        "rogue-dhcp-misconfig"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "rogue-dhcp-malicious",
+      "expected": [
+        "rogue-dhcp-attack"
+      ],
+      "got": [
+        "rogue-dhcp-attack"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "syn-flood",
+      "expected": [
+        "syn-flood"
+      ],
+      "got": [
+        "syn-flood"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "server-outage",
+      "expected": [
+        "server-outage"
+      ],
+      "got": [
+        "server-outage"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "failover-gratuitous-arp",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "dhcp-relay",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "llmnr-poisoning",
+      "expected": [
+        "llmnr-poison"
+      ],
+      "got": [
+        "llmnr-poison"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "mixed-incident",
+      "expected": [
+        "arp-spoof",
+        "mtu-blackhole"
+      ],
+      "got": [
+        "arp-spoof",
+        "mtu-blackhole"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "beacon-fixed-interval",
+      "expected": [
+        "beaconing"
+      ],
+      "got": [
+        "beaconing"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "dga-lookups",
+      "expected": [
+        "dga-domain"
+      ],
+      "got": [
+        "dga-domain"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "dns-tunnel",
+      "expected": [
+        "dns-tunnel"
+      ],
+      "got": [
+        "dns-tunnel"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "hidden-domain-ech",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "mixed-incident-after-fix",
+      "expected": [],
+      "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    }
+  ]
+}

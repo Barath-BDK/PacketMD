@@ -1,0 +1,112 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { analyze, BUDGET, decode, gate, neutralize, parseFilter, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
+import { createHash } from 'node:crypto';
+import { fileSource } from '../packages/cli/src/source';
+
+const mem = (b: Uint8Array): ByteSource => ({ size: b.length, read: async (o, l) => b.subarray(o, o + l) });
+const manifest = JSON.parse(readFileSync('labgen/hostile/manifest.json', 'utf8')) as { file: string; uploadName: string; expect: string; attack: string }[];
+const hostile = (f: string) => new Uint8Array(readFileSync(`labgen/hostile/${f}`));
+
+describe('intake gate', () => {
+  const pcap = new Uint8Array([0xd4, 0xc3, 0xb2, 0xa1, 2, 0, 4, 0, ...new Array(20).fill(0)]);
+  it('needs extension and magic to agree', () => {
+    expect(gate('a.pcap', 100, pcap).ok).toBe(true);
+    expect(gate('a.pcapng', 100, pcap).ok).toBe(false);
+    expect(gate('a.exe', 100, pcap).ok).toBe(false);
+    expect(gate('a.pcap.zip', 100, pcap).ok).toBe(false);
+  });
+  it('accepts all five magics', () => {
+    for (const m of [[0xa1, 0xb2, 0xc3, 0xd4], [0xd4, 0xc3, 0xb2, 0xa1], [0xa1, 0xb2, 0x3c, 0x4d], [0x4d, 0x3c, 0xb2, 0xa1]]) expect(gate('a.pcap', 100, new Uint8Array(m)).ok).toBe(true);
+    expect(gate('a.pcapng', 100, new Uint8Array([0x0a, 0x0d, 0x0d, 0x0a])).ok).toBe(true);
+  });
+  it('refuses a file over the size budget', () => expect(gate('a.pcap', BUDGET.maxFileBytes + 1, pcap).ok).toBe(false));
+  it('names what a disguised file really is', () => expect(gate('a.pcap', 100, new Uint8Array([0x4d, 0x5a, 0, 0])).reason).toContain('Windows program'));
+});
+
+describe('hostile corpus', () => {
+  for (const h of manifest) it(`${h.file}: ${h.attack}`, async () => {
+    let r: Report | null = null, rejected = false;
+    try { r = await analyze(mem(hostile(h.file)), h.uploadName); }
+    catch (e) { if (e instanceof Rejected) rejected = true; else throw e; }
+    if (h.expect === 'rejected') expect(rejected).toBe(true);
+    else expect(r).not.toBeNull();
+    if (h.expect === 'evasion') expect(r!.findings.some((f) => f.hypothesis === 'parser-evasion')).toBe(true);
+    if (r) {
+      expect(r.defense.fileName).not.toContain('/');
+      expect(JSON.stringify(r)).not.toMatch(/[‮\u0000]/);
+    }
+  });
+  it('never hands the UI a raw eicar payload', async () => {
+    const r = await analyze(mem(hostile('eicar-payload.pcap')), 'e.pcap');
+    expect(JSON.stringify(r)).not.toContain('EICAR');
+  });
+  it('keeps the HTML hostname inert text', async () => {
+    const r = await analyze(mem(hostile('hostile-hostnames.pcap')), 'h.pcap');
+    const row = r.rows[0]!;
+    expect(row.info).toContain('<img');
+    expect(/[‮\u0000]/.test(JSON.stringify(r.rows))).toBe(false);
+  });
+  it('reports unsupported link types plainly', async () => {
+    const r = await analyze(mem(hostile('wifi-linktype.pcap')), 'w.pcap');
+    expect(r.defense.unsupportedLink).toBe(true);
+  });
+});
+
+describe('sanitising', () => {
+  it('strips controls and bidi', () => expect(safeText('a‮b\0c')).toBe('a�b�c'));
+  it('truncates', () => expect(safeText('x'.repeat(999)).length).toBeLessThan(300));
+  it('neutralises spreadsheet formulas', () => { for (const c of ['=', '+', '-', '@']) expect(neutralize(`${c}cmd`).startsWith("'")).toBe(true); });
+});
+
+describe('offsets', () => {
+  it('reproduce the exact packet bytes', async () => {
+    const file = 'samples/mixed-incident.pcap', bytes = readFileSync(file);
+    const src = fileSource(file), r = await analyze(src, file);
+    src.close();
+    for (const f of r.findings) for (const e of f.evidence) {
+      const data = new Uint8Array(bytes.subarray(e.dataOffset, e.dataOffset + e.capLen));
+      const raw: RawPacket = { no: e.no, ts: e.ts, capLen: e.capLen, origLen: e.capLen, linkType: 1, recordOffset: e.recordOffset, dataOffset: e.dataOffset, data };
+      expect(decode(raw).info).toBe(e.info);
+      expect(bytes.readUInt32LE(e.recordOffset + 8)).toBe(e.capLen);
+    }
+  });
+});
+
+describe('own hashes', () => {
+  it('sha256 matches node crypto across chunk boundaries', () => {
+    const b = new Uint8Array(1000).map((_, i) => i & 255), h = new Sha256();
+    h.update(b.subarray(0, 63)); h.update(b.subarray(63, 500)); h.update(b.subarray(500));
+    expect(h.digest()).toBe(createHash('sha256').update(b).digest('hex'));
+  });
+  it('md5 matches node crypto', () => expect(md5('771,4865-4866,0-23,29-23,0')).toBe(createHash('md5').update('771,4865-4866,0-23,29-23,0').digest('hex')));
+});
+
+describe('filter language', () => {
+  const env = { findings: [] };
+  const row = { no: 5, ts: 0, src: '10.0.0.1', dst: '10.0.0.2', proto: 'TCP', len: 60, info: '', capLen: 60, recordOffset: 0, dataOffset: 0, sport: 443, dport: 5000, linkType: 1 };
+  it('combines with and/or/not', () => {
+    expect(parseFilter('ip.src == 10.0.0.1 and not proto == udp', env)(row)).toBe(true);
+    expect(parseFilter('(ip.src == 1.1.1.1 or tcp.port == 443) && frame.number in 1-9', env)(row)).toBe(true);
+  });
+  it('explains errors in plain words', () => expect(() => parseFilter('nonsense == 1', env)).toThrow(/does not know/));
+  it('treats code as a harmless unknown field', () => expect(() => parseFilter('process.exit(1)', env)).toThrow());
+});
+
+describe('claim-to-packet binding and stories', () => {
+  const all = readdirSync('samples').filter((f) => f.endsWith('.pcap') && !f.startsWith('large'));
+  it('every finding has evidence and every story cites only real packets and hosts', async () => {
+    for (const name of all) {
+      const src = fileSource(`samples/${name}`), r = await analyze(src, name);
+      src.close();
+      const hosts = new Set(r.rows.flatMap((x) => [x.src, x.dst]));
+      for (const f of r.findings) {
+        expect(f.evidence.length).toBeGreaterThan(0);
+        for (const st of f.story) {
+          for (const p of st.packets) expect(p).toBeLessThanOrEqual(r.rows.length);
+          for (const e of st.edges) { expect(hosts.has(e.from)).toBe(true); expect(hosts.has(e.to)).toBe(true); }
+        }
+      }
+    }
+  });
+});
