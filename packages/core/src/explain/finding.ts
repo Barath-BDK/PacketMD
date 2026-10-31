@@ -60,7 +60,7 @@ function story(ctx: Ctx, c: Case, f: Finding): StoryStep[] {
       make('seen', 'What we saw', `${seen.length} packets around ${c.hosts[0] ?? 'this host'} do not fit normal behaviour.`, f.evidence[0]?.info ?? '', seen, false),
       make('case-a', `The case for ${a!.title.toLowerCase()}`, sa.map((s) => s.label).join(' ') || 'Nothing points here strongly.', `${a!.title}: ${pct(a!.prob)}`, (sa[0]?.packets ?? []).slice(0, 6)),
       make('case-b', `The case for ${b!.title.toLowerCase()}`, sb.map((s) => s.label).join(' ') || 'Nothing points here strongly.', `${b!.title}: ${pct(b!.prob)}`, (sb[0]?.packets ?? []).slice(0, 6), b!.family === 'attack'),
-      make('gap', 'What is missing', `Both explanations fit the evidence, with only ${Math.round(c.margin * 100)} points between them. ${gapOf(c)}`, `Margin ${c.margin}, a verdict needs at least 0.2.`, []),
+      make('gap', 'What is missing', `Both explanations fit the evidence${c.margin < 0.01 ? ' equally' : `, with only ${Math.round(c.margin * 100)} points between them`}. ${gapOf(c)}`, `Margin ${c.margin}, a verdict needs at least 0.2.`, []),
       make('next', 'What to capture next', f.nextCapture ?? gapOf(c), 'Open the new capture here and the verdict updates.', []),
     ];
   }
@@ -130,5 +130,6 @@ export function headline(fs: Finding[]) {
   if (!a && !b && !c) return 'No faults or attacks found in this capture.';
   const parts = [a && `${a} attack${a > 1 ? 's' : ''}`, b && `${b} fault${b > 1 ? 's' : ''}`, c && `${c} unsettled`].filter(Boolean);
   const top = fs.find((f) => f.lane !== 'BENIGN');
+  if (top!.lane === 'INCONCLUSIVE') return `${parts.join(', ')}. One more capture will settle it.`;
   return `${parts.join(', ')}. Deal with ${top!.title.toLowerCase()} first.`;
 }
