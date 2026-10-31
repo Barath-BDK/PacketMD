@@ -167,5 +167,12 @@
       "benign"
     ],
     "note": "Same network after the fixes, used by Verify Fix"
+  },
+  "arp-gateway-ambiguous": {
+    "findings": [
+      "inconclusive:arp-spoof"
+    ],
+    "allowed": [],
+    "note": "Could be a spoof or a bad DHCP lease: the evidence does not settle it"
   }
 }

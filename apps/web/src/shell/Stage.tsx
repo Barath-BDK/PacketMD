@@ -12,7 +12,8 @@ const SCENES: Record<string, { sx: number; sy: number; z: number; d: number }> =
   console: { sx: 0.34, sy: 0.05, z: 1.3, d: 0.42 },
   signin: { sx: 0.16, sy: -0.08, z: 1.4, d: 0.8 },
 };
-export const BGS = [{ id: 1, label: 'Topo', pair: 1 }, { id: 0, label: 'Wave', pair: 2 }, { id: 2, label: 'Embers', pair: 4 }, { id: 3, label: 'Fissure', pair: 5 }, { id: 4, label: 'Sonar', pair: 6 }, { id: 5, label: 'Defense', pair: 7 }, { id: 6, label: 'Ridge', pair: 8 }];
+export const BGS = [{ id: 1, label: 'Topo', pair: 1 }, { id: 0, label: 'Wave', pair: 2 }, { id: 2, label: 'Embers', pair: 4 }, { id: 3, label: 'Fissure', pair: 5 }, { id: 4, label: 'Sonar', pair: 6 }, { id: 5, label: 'Defense', pair: 7 }, { id: 6, label: 'Ridge', pair: 8 }, { id: 7, label: 'Network', pair: 8 }];
+export const DIMS = [{ label: 'Normal', v: 1 }, { label: 'Dim', v: 0.55 }, { label: 'Low', v: 0.3 }];
 export const TRANSITIONS = [{ label: 'Match', kind: -1, dur: 0 }, { label: 'Flood', kind: 1, dur: 1500 }, { label: 'Break', kind: 2, dur: 1350 }, { label: 'Surge', kind: 3, dur: 1150 }, { label: 'Tide', kind: 0, dur: 1250 }, { label: 'Burn', kind: 4, dur: 1500 }, { label: 'Shatter', kind: 5, dur: 1300 }, { label: 'Ping', kind: 6, dur: 1400 }, { label: 'Sweep', kind: 7, dur: 1200 }, { label: 'Scan', kind: 8, dur: 1350 }];
 
 const rgb = (hex: string) => { const n = parseInt(hex.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
@@ -34,7 +35,7 @@ function program(cv: HTMLCanvasElement, fs: string, names: string[]) {
   return { gl, u };
 }
 
-export interface Look { version: number; transition: number; hover: number; small: number; bg: number }
+export interface Look { version: number; transition: number; hover: number; small: number; bg: number; dim: number }
 export interface StageApi { run(mode: 'dark' | 'light', swap: () => void): void; scene(name: string): void; fade(state: 'idle' | 'out' | 'pre'): void }
 
 export function Stage({ root, look, mode, page, api, setPhase }: {
@@ -65,10 +66,10 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     const th0 = THEMES[live.current.mode];
     const colors = { a: rgb(th0.accent), bg: rgb(th0.bg), l: th0.strength };
     const t0 = performance.now();
-    let last = t0, lastBg = 0, lastMeasure = 0, raf = 0, hoverEl: Element | null = null;
+    let last = t0, lastBg = 0, lastMeasure = 0, raf = 0, hoverEl: Element | null = null, scrollUntil = 0, fxClear = true;
 
     const resize = () => {
-      const w = Math.max(1, rootEl.clientWidth), h = Math.max(1, rootEl.clientHeight), dpr = Math.min(devicePixelRatio || 1, 1.25);
+      const w = Math.max(1, rootEl.clientWidth), h = Math.max(1, rootEl.clientHeight), dpr = Math.min(devicePixelRatio || 1, 1);
       size.w = w; size.h = h;
       for (const c of [glc, txc, fxc]) { c.width = Math.floor(w * dpr); c.height = Math.floor(h * dpr); }
       fx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -101,7 +102,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       gl.uniform2f(u.M!, ptr.x / size.h, 1 - ptr.y / size.h);
       gl.uniform1f(u.T!, reduced ? 52 : (performance.now() - t0) / 1000 + 10);
       gl.uniform1f(u.Z!, cam.z * (1 + cam.surge * 7));
-      gl.uniform1f(u.D!, cam.d * (1 - cam.surge * 0.8));
+      gl.uniform1f(u.D!, cam.d * (1 - cam.surge * 0.8) * DIMS[cur.look.dim]!.v);
       gl.uniform1f(u.W!, cam.w); gl.uniform1f(u.Mo!, cam.mo); gl.uniform1f(u.E!, cam.e); gl.uniform1f(u.L!, colors.l);
       // Console pages always use Original: the clearing versions leave them almost black.
       gl.uniform1i(u.V!, cur.page === 'console' ? 0 : cur.look.version);
@@ -130,10 +131,12 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     };
     const drawFx = (now: number, dt: number) => {
       const { w, h } = size, accent = THEMES[live.current.mode].accent;
-      fx.clearRect(0, 0, w, h);
       if (touch) return;
+      if (!ptr.on && !trail.length && !shots.length) { if (!fxClear) { fx.clearRect(0, 0, w, h); fxClear = true; } return; }
+      fx.clearRect(0, 0, w, h);
+      fxClear = false;
       for (const pt of trail) pt.age += dt * 1000;
-      trail = trail.filter((pt) => pt.age < 320);
+      trail = trail.filter((pt) => pt.age < 170);
       if (ptr.on) trail.push({ x: ptr.x, y: ptr.y, age: 0 });
       const n = trail.length;
       if (n > 1) {
@@ -143,7 +146,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
           const a = trail[Math.max(0, i - 1)]!, b = trail[Math.min(n - 1, i + 1)]!;
           const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
           if (len > 0.001) { nx = -dy / len; ny = dx / len; }
-          const half = 3 * clamp01(1 - trail[i]!.age / 320);
+          const half = 1 * clamp01(1 - trail[i]!.age / 170);
           l.push([trail[i]!.x + nx * half, trail[i]!.y + ny * half]);
           r.push([trail[i]!.x - nx * half, trail[i]!.y - ny * half]);
         }
@@ -185,9 +188,11 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       colors.a = colors.a.map((v, i) => v + (a[i]! - v) * ck);
       colors.bg = colors.bg.map((v, i) => v + (b[i]! - v) * ck);
       colors.l += (th.strength - colors.l) * ck;
-      if (now - lastMeasure > 400) { measure(); lastMeasure = now; }
+      // Scrolling gets the frame budget: the background slows down and layout reads wait.
+      const scrolling = now < scrollUntil;
+      if (!scrolling && now - lastMeasure > 400) { measure(); lastMeasure = now; }
       runTx(now);
-      if (now - lastBg > 33) { drawBg(); lastBg = now; }
+      if (now - lastBg > (scrolling ? 120 : 33)) { drawBg(); lastBg = now; }
       drawFx(now, dt);
       raf = requestAnimationFrame(tick);
     };
@@ -199,6 +204,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       ptr.quiet = !!el?.closest?.('.hv');
     };
     const onLeave = () => { ptr.on = false; };
+    const onScroll = () => { scrollUntil = performance.now() + 180; };
     const onDown = () => { shots.push({ x: ptr.x, y: ptr.y, start: performance.now() }); };
     // Decode hover: the label scrambles, then resolves left to right.
     const onOver = (e: PointerEvent) => {
@@ -222,6 +228,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     rootEl.addEventListener('pointerover', onOver);
     rootEl.addEventListener('pointerleave', onLeave);
     rootEl.addEventListener('pointerdown', onDown);
+    rootEl.addEventListener('scroll', onScroll, { capture: true, passive: true });
 
     api.current = {
       scene: (name) => { target = SCENES[name] ?? target; if (reduced) { Object.assign(cam, target); drawBg(); } },
@@ -251,6 +258,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       cancelAnimationFrame(raf); ro.disconnect();
       rootEl.removeEventListener('pointermove', onMove); rootEl.removeEventListener('pointerover', onOver);
       rootEl.removeEventListener('pointerleave', onLeave); rootEl.removeEventListener('pointerdown', onDown);
+      rootEl.removeEventListener('scroll', onScroll, { capture: true });
     };
   }, []);
 

@@ -111,6 +111,33 @@ vec2 ridge(vec2 p,float asp){
   }
   return vec2(0.);
 }
+// A sparse network map: hosts joined by links, with packets travelling along some of them.
+vec2 npt(vec2 c){return c+.22+.56*vec2(hs(c),hs(c+13.7));}
+vec2 network(vec2 p){
+  vec2 q=p*6.5,id=floor(q);
+  float w=fwidth(q.y)*1.1,l=0.,k=0.;
+  for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+    vec2 c=id+vec2(float(i),float(j)),a=npt(c);
+    float dn=length(q-a);
+    float node=1.-smoothstep(.055,.055+w,dn);
+    l=max(l,node);
+    k=max(k,node*step(.82,hs(c+4.4)));
+    for(int e=0;e<2;e++){
+      vec2 d=e==0?vec2(1.,0.):vec2(0.,1.);
+      float s=hs(c+d*7.3);
+      if(s<.34) continue;
+      vec2 b=npt(c+d),ab=b-a;
+      float h=clamp(dot(q-a,ab)/dot(ab,ab),0.,1.);
+      float ln=1.-smoothstep(0.,w,length(q-a-ab*h));
+      l=max(l,ln*.5);
+      if(s>.68){
+        float t=fract(T*(.05+.09*s)+s*17.);
+        k=max(k,1.-smoothstep(.03,.05+w,length(q-a-ab*t)));
+      }
+    }
+  }
+  return vec2(l,k);
+}
 vec2 layer(int g,vec2 p,vec2 c,float asp){
   if(g==0) return contour(waveV(p,c,asp*.8375)+RIP);
   if(g==1) return contour(topoV(P0)+RIP);
@@ -118,6 +145,7 @@ vec2 layer(int g,vec2 p,vec2 c,float asp){
   if(g==3) return fissure(p,asp);
   if(g==4) return sonar(p,asp);
   if(g==5) return defense(p,asp);
+  if(g==7) return network(p);
   return ridge(p,asp);
 }
 float safe(int a,int b,vec2 px){

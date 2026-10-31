@@ -123,7 +123,7 @@ update public.profiles set role = 'admin' where id = '<user id>';
 
 ## Measured accuracy
 
-From `pnpm accuracy` on 24 lab captures, 6 of them clean or benign look-alikes:
+From `pnpm accuracy` on 25 lab captures, 6 of them clean or benign look-alikes:
 
 | Precision | Recall | False-alarm rate |
 |---|---|---|

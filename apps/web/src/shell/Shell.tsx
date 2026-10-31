@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Lenis from 'lenis';
-import { BGS, Stage, TRANSITIONS, type Look, type StageApi } from './Stage';
+import { BGS, DIMS, Stage, TRANSITIONS, type Look, type StageApi } from './Stage';
 
 const VERSIONS = ['Original', 'Clearing', 'Tideline', 'Pools', 'Halo'];
 const HOVERS = ['Trace', 'Decode', 'Brackets', 'Flood'];
@@ -18,7 +18,6 @@ export function Hv({ children, className = '', ...rest }: React.ButtonHTMLAttrib
   return (
     <button type="button" {...rest} className={`cr-btn hv ${className}`}>
       <span className="hv-fill" aria-hidden="true"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 8 Q25 0 50 8 T100 8 T150 8 T200 8 V40 H0 Z" /></svg></span>
-      <svg className="hv-wave" aria-hidden="true" viewBox="0 0 100 6" preserveAspectRatio="none"><path pathLength={1} d="M0 3 Q6 0 12.5 3 T25 3 T37.5 3 T50 3 T62.5 3 T75 3 T87.5 3 T100 3" /></svg>
       <span className="lb">{children}</span>
     </button>
   );
@@ -46,7 +45,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(), router = useRouter();
   const root = useRef<HTMLDivElement>(null), api = useRef<StageApi | null>(null), scroller = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
-  const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1 });
+  const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });
   const [showLook, setShowLook] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'out' | 'pre'>('idle');
 
@@ -65,7 +64,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !scroller.current) return;
-    const lenis = new Lenis({ wrapper: scroller.current, content: content.current!, lerp: 0.12 });
+    const lenis = new Lenis({ wrapper: scroller.current, content: content.current!, lerp: 0.16 });
     let id = requestAnimationFrame(function loop(t) { lenis.raf(t); id = requestAnimationFrame(loop); });
     return () => { cancelAnimationFrame(id); lenis.destroy(); };
   }, []);
@@ -83,14 +82,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({ go }), [go]);
   const page = sceneOf(path);
   const fx = phase === 'idle' ? { opacity: 1 } : phase === 'out' ? { opacity: 0, transform: 'scale(1.1)', filter: 'blur(4px)' } : { opacity: 0, transform: 'scale(.92)', filter: 'blur(4px)', transition: 'none' };
-  const nav: [string, string][] = [['/', 'Overview'], ['/report', 'Report'], ['/security', 'Security'], ['/methodology', 'Methodology'], ['/signin', 'Sign in']];
+  const nav: [string, string][] = [['/', 'Overview'], ['/report', 'Report'], ['/security', 'Security'], ['/methodology', 'Methodology'], ['/signin', 'Log in']];
 
   return (
     <Ctx.Provider value={value}>
       <div ref={root} className={`cr-root hs-${HOVERS[look.hover]!.toLowerCase()}`}>
         <Stage root={root} look={look} mode={mode} page={page} api={api} setPhase={setPhase} />
         <header className="head">
-          <button type="button" className="cr-btn" data-safe="ui" onClick={() => go('/')} style={{ letterSpacing: '.08em' }}>PACKETMD</button>
+          <button type="button" className="cr-btn mark" data-safe="ui" onClick={() => go('/')} aria-label="PacketMD home">Packet<span className="ac">MD</span></button>
           <div className="nav" data-safe="ui">
             <nav aria-label="Main" className="nav">
               {nav.map(([h, l]) => <Hv key={h} className="under" aria-current={path === h ? 'page' : undefined} onClick={() => go(h)}>{l}</Hv>)}
@@ -111,6 +110,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Opts label="Hover" items={HOVERS} value={look.hover} pick={(hover) => setLook({ ...look, hover })} />
             <Opts label="Small text" items={SMALLS} value={look.small} pick={(small) => setLook({ ...look, small })} />
             <Opts label="Background" items={BGS.map((b) => b.label)} value={BGS.findIndex((b) => b.id === look.bg)} pick={(i) => setLook({ ...look, bg: BGS[i]!.id })} />
+            <Opts label="Brightness" items={DIMS.map((d) => d.label)} value={look.dim} pick={(dim) => setLook({ ...look, dim })} />
           </>}
           <div className="g"><button type="button" className="cr-btn st" aria-expanded={showLook} onClick={() => setShowLook(!showLook)} style={{ padding: '4px 0', color: 'var(--small)' }}>{showLook ? 'Hide look' : 'Look'}</button></div>
         </div>

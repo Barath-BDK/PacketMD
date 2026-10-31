@@ -343,6 +343,16 @@ def s_hidden():
     save("hidden-domain-ech", p, [], note="Domain must show as hidden, never guessed", allowed=["benign"])
 
 
+def s_ambiguous():
+    c = T(); m2 = "00:1a:2b:00:00:77"
+    p = normal(c, 1)
+    p += dhcp_flow(c, m2, DNS_IP, DNS_MAC, GW_IP, GW_IP, [DNS_IP])
+    for i in range(7):
+        p.append(c.at(eth(m2, A_MAC) / ARP(op=2, hwsrc=m2, psrc=GW_IP, hwdst=A_MAC, pdst=A_IP), 0.4))
+        p.append(c.at(eth(GW_MAC, A_MAC) / ARP(op=2, hwsrc=GW_MAC, psrc=GW_IP, hwdst=A_MAC, pdst=A_IP), 0.2))
+    save("arp-gateway-ambiguous", p, ["inconclusive:arp-spoof"], note="Could be a spoof or a bad DHCP lease: the evidence does not settle it")
+
+
 def s_verify():
     c = T(1760100000.0); p = normal(c, 3)
     save("mixed-incident-after-fix", p, [], note="Same network after the fixes, used by Verify Fix", allowed=["benign"])
@@ -355,7 +365,7 @@ def s_large():
     wrpcap(str(OUT / "large-capture.pcap"), p)
 
 
-for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify):
+for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify, s_ambiguous):
     fn()
 if "--large" in sys.argv:
     s_large()

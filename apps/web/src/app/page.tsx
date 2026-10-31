@@ -37,7 +37,7 @@ export default function Home() {
       <section className="pad">
         <div className="veil" style={{ padding: '32px 24px' }}>
           <h2 className="disp h2">Lab captures to try</h2>
-          <p className="muted" style={{ maxWidth: '60ch', lineHeight: 1.5 }}>Every one was generated in our lab, so no real network is involved. Each opens through the same gate and sandbox as your own files.</p>
+          <p className="muted" style={{ maxWidth: '60ch', lineHeight: 1.5 }}>Each one was generated in our lab, so no real network is involved. They open through the same gate and sandbox as your own files.</p>
           <div>
             {samples.filter((s) => s.file !== 'mixed-incident-after-fix.pcap').map((s) => (
               <button type="button" key={s.file} className="rowbtn" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.4fr) 90px' }} disabled={!!c.busy} onClick={() => void run(c.openSample(s.file))}>

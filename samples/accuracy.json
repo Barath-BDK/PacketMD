@@ -1,5 +1,5 @@
 {
-  "samples": 24,
+  "samples": 25,
   "precision": 1,
   "recall": 1,
   "falseAlarmRate": 0,
@@ -267,6 +267,18 @@
       "file": "mixed-incident-after-fix",
       "expected": [],
       "got": [],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "arp-gateway-ambiguous",
+      "expected": [
+        "inconclusive:arp-spoof"
+      ],
+      "got": [
+        "inconclusive:arp-spoof"
+      ],
       "ok": true,
       "extra": [],
       "missed": []

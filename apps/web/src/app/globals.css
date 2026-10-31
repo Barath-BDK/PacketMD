@@ -3,12 +3,12 @@
 /* Crest V3 tokens, unchanged. */
 :root, [data-mode="dark"] {
   --bg: #050506; --fg: #F3F1F1; --muted: #C4BFC1; --tint: #E8B9BE; --line: #2E282A; --bar: #57494D; --ac: #F02B3C; --on: #050506;
-  --panel: rgba(5, 5, 6, .86); --veil: rgba(5, 5, 6, .68); --scan: rgba(240, 43, 60, .22);
+  --panel: rgba(5, 5, 6, .94); --veil: rgba(5, 5, 6, .8); --scan: rgba(240, 43, 60, .22);
   --small: var(--muted); --mono: var(--font-mono), 'JetBrains Mono', Consolas, monospace; --cap: 12px; --data: 13px;
 }
 [data-mode="light"] {
   --bg: #E7EAEE; --fg: #0E1014; --muted: #3A3F47; --tint: #6B2231; --line: #B4BCC6; --bar: #98A2AE; --ac: #B80D25; --on: #E7EAEE;
-  --panel: rgba(231, 234, 238, .86); --veil: rgba(231, 234, 238, .68); --scan: rgba(184, 13, 37, .22);
+  --panel: rgba(231, 234, 238, .95); --veil: rgba(231, 234, 238, .84); --scan: rgba(184, 13, 37, .22);
 }
 [data-small="1"] { --small: var(--fg); }
 [data-small="2"] { --small: var(--tint); }
@@ -20,9 +20,8 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 ::-webkit-scrollbar-thumb { background: var(--bar) }
 ::-webkit-scrollbar-thumb:hover { background: var(--ac) }
 @supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--bar) var(--bg) } }
-.cr-root, .cr-root * { transition: color .5s ease, border-color .5s ease, background-color .5s ease }
 .cr-root { position: fixed; inset: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--bg); color: var(--fg) }
-@media (hover: hover) and (pointer: fine) { .cr-live, .cr-live * { cursor: none !important } }
+@media (hover: hover) and (pointer: fine) { .cr-live, .cr-live * { cursor: none !important } .cr-live input:not([type=checkbox]):not([type=range]) { cursor: text !important } }
 .cv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
 .mono { font-family: var(--mono) }
 .disp { font-family: var(--font-disp), 'Big Shoulders', 'Arial Narrow', sans-serif; text-transform: uppercase; font-weight: 800; line-height: 1 }
@@ -50,12 +49,11 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .hv { position: relative; isolation: isolate }
 .hv .lb { position: relative; z-index: 1; display: inline-block; transition: transform .3s cubic-bezier(.3, .7, .2, 1), color .25s ease }
 .hv .lb svg { display: inline-block }
-.hv-wave { position: absolute; left: 0; bottom: -3px; width: 100%; height: 6px; overflow: visible; pointer-events: none }
-.hv-wave path { fill: none; stroke: var(--ac); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .5s cubic-bezier(.3, .7, .2, 1) }
+.hs-trace .hv::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1.5px; background: var(--ac); transform: scaleX(0); transform-origin: left; transition: transform .35s cubic-bezier(.3, .7, .2, 1) }
 .hv-fill { position: absolute; inset: -2px -10px 0; overflow: hidden; pointer-events: none; z-index: 0 }
 .hv-fill svg { position: absolute; left: 0; bottom: 0; width: 200%; height: 150%; transform: translateY(100%); transition: transform .4s cubic-bezier(.3, .7, .2, 1) }
 .hv-fill path { fill: var(--ac) }
-.hs-trace .hv:is(:hover, :focus-visible) .hv-wave path { stroke-dashoffset: 0 }
+.hs-trace .hv:is(:hover, :focus-visible)::after { transform: scaleX(1) }
 .hs-trace .hv:is(:hover, :focus-visible) .lb { transform: translateY(-2px) }
 .hs-decode .hv:is(:hover, :focus-visible) .lb { color: var(--ac) }
 .hs-brackets .hv::before { content: ""; position: absolute; inset: 0 -9px -1px; pointer-events: none; background: linear-gradient(var(--ac), var(--ac)) left top/0 1.5px no-repeat, linear-gradient(var(--ac), var(--ac)) left top/1.5px 0 no-repeat, linear-gradient(var(--ac), var(--ac)) right top/0 1.5px no-repeat, linear-gradient(var(--ac), var(--ac)) right top/1.5px 0 no-repeat, linear-gradient(var(--ac), var(--ac)) left bottom/0 1.5px no-repeat, linear-gradient(var(--ac), var(--ac)) left bottom/1.5px 0 no-repeat, linear-gradient(var(--ac), var(--ac)) right bottom/0 1.5px no-repeat, linear-gradient(var(--ac), var(--ac)) right bottom/1.5px 0 no-repeat; transition: background-size .25s cubic-bezier(.3, .7, .2, 1) }
@@ -67,13 +65,18 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .mt:is(:hover, :focus-visible) svg.turn { transform: rotate(180deg) }
 .st:is(:hover, :focus-visible) { color: var(--ac) !important; border-bottom-color: var(--ac) !important }
 
-.cr-input { width: 100%; box-sizing: border-box; background: transparent; border: 0; border-bottom: 1px solid var(--muted); padding: 12px 0; font: inherit; color: inherit; border-radius: 0 }
+.cr-input { width: 100%; box-sizing: border-box; background: var(--bg); border: 1px solid var(--muted); padding: 11px 12px; font: inherit; color: var(--fg); border-radius: 0; margin-top: 6px }
+.cr-input::placeholder { color: var(--muted); opacity: .75 }
+.cr-input:hover { border-color: var(--fg) }
+.cr-input:focus { border-color: var(--ac); outline: 1px solid var(--ac); outline-offset: 0 }
+.cr-input[aria-invalid="true"] { border-color: var(--ac) }
 .rise { animation: crrise .9s cubic-bezier(.2, .7, .2, 1) both }
 .d1 { animation-delay: .22s } .d2 { animation-delay: .32s } .d3 { animation-delay: .42s }
 .flip { animation: crrise .45s cubic-bezier(.2, .7, .2, 1) both }
 @keyframes crrise { from { opacity: 0; transform: translateY(36px) } to { opacity: 1; transform: none } }
 
-.head { position: relative; z-index: 3; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 22px 40px; font-family: var(--font-mono), monospace; font-size: 13px }
+.head { position: relative; z-index: 6; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 40px; font-family: var(--font-mono), monospace; font-size: 13px; background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 -1px var(--ac) }
+.mark { font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: .01em }
 .nav { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center }
 .page { position: relative; z-index: 2; flex: 1 1 auto; min-height: 0; overflow: auto; box-sizing: border-box }
 .pad { padding: 0 40px 96px; box-sizing: border-box; min-height: 100% }
@@ -81,10 +84,13 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .h1 { margin: 0; max-width: 3.9em; font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: clamp(64px, min(10.3vw, 15.5vh), 148px); line-height: .9; text-transform: uppercase }
 .h2 { margin: 0; font-size: clamp(38px, 5vw, 72px); text-wrap: balance }
 .h3 { margin: 0; font-size: clamp(26px, 3vw, 38px) }
-.veil { background: var(--veil); backdrop-filter: blur(2px) }
-.solid { background: var(--panel); backdrop-filter: blur(12px) }
+.veil { background: var(--veil) }
+.solid { background: var(--panel) }
+section { content-visibility: auto; contain-intrinsic-size: auto 400px }
 .rule { border-bottom: 1px solid var(--line) }
-.tabs { display: flex; flex-wrap: wrap; gap: 6px 24px; font-family: var(--font-mono), monospace; font-size: 13px; position: sticky; top: 0; z-index: 4; padding: 12px 0; background: var(--panel); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line) }
+.tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; font-family: var(--font-mono), monospace; font-size: 13px; position: sticky; top: 0; z-index: 4; padding: 8px 0; background: var(--panel); border-bottom: 1px solid var(--line) }
+.tabs .levels { margin-left: auto }
+.report-title { font-size: clamp(30px, 3.6vw, 52px); margin: 0 }
 .tab, .under { padding: 8px 0; border-bottom: 1px solid transparent }
 .tab[aria-selected="true"], .under[aria-pressed="true"], .under[aria-current="page"] { border-bottom-color: var(--ac) }
 .tab[aria-selected="false"], .under[aria-pressed="false"] { color: var(--muted) }
@@ -98,6 +104,16 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .rowbtn { display: grid; width: 100%; align-items: baseline; gap: 16px; padding: 12px 0; background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; text-align: left }
 .rowbtn:hover { background: var(--scan) }
 .rowbtn.on { box-shadow: inset 3px 0 0 var(--ac); padding-left: 8px }
+.lanes { display: grid; gap: 2px }
+.lane-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 14px 16px; background: var(--veil); border: 0; border-left: 3px solid var(--bar); color: inherit; font: inherit; text-align: left }
+.lane-row:hover { background: var(--scan) }
+.lane-row.ATTACK { border-left-color: var(--ac) } .lane-row.FAULT { border-left-color: var(--fg) } .lane-row.INCONCLUSIVE { border-left-color: var(--tint) }
+.export { display: flex; flex-wrap: wrap; gap: 20px 56px; padding: 20px 24px; background: var(--veil); margin-top: 24px }
+.export h3 { margin: 0 0 10px; font-size: 16px; font-weight: 600 }
+.export .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; font-family: var(--font-sans), sans-serif; font-size: 15px }
+.btn { appearance: none; background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 9px 14px; font: inherit }
+.btn:hover, .btn:focus-visible { border-color: var(--ac); color: var(--ac) }
+.btn[aria-pressed="true"] { border-color: var(--ac) }
 table.t { width: 100%; border-collapse: collapse; font-size: 14px }
 table.t th { font-family: var(--mono); font-size: var(--cap); color: var(--small); text-align: left; font-weight: 400; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap }
 table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere }
@@ -105,35 +121,65 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 84px; border-bottom: 1px solid var(--bar) }
 .bars i { flex: 1 1 0; background: var(--bar); min-height: 1px; display: block }
 .bars i.hot { background: var(--ac) }
-.pk { display: grid; grid-template-columns: 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
+.pk { display: grid; grid-template-columns: 16px 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
 .pk > span { overflow: hidden; text-overflow: ellipsis }
 .pk:hover { background: var(--scan) }
-.pk.on { background: var(--ac); color: var(--on) }
+.pk.on { background: var(--ac); color: var(--on); position: absolute }
+.pk .tw { transition: transform .15s ease }
+.pk.on .tw { transform: rotate(90deg) }
+.pk-detail { position: absolute; left: 0; right: 0; box-sizing: border-box; padding: 14px; background: var(--bg); border: 1px solid var(--ac); border-top: 0; overflow: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px }
+.flt { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 }
+.flt .btn { font-family: var(--font-mono), monospace; font-size: 12px; padding: 5px 9px }
 .pk.bad:not(.on) { color: var(--ac) }
 .hex { font-family: var(--font-mono), monospace; font-size: 12px; line-height: 1.6; white-space: pre }
 .hex b { background: var(--ac); color: var(--on); font-weight: 400 }
 .tree ul { list-style: none; margin: 0; padding-left: 14px }
 .tree button { display: block; font-family: var(--font-mono), monospace; font-size: 12px; line-height: 1.6; text-align: left; overflow-wrap: anywhere }
 .tree button:hover, .tree button.on { color: var(--ac) }
-.stage-svg { width: 100%; height: auto; display: block }
+.stage-svg { width: 100%; height: 100%; display: block; min-height: 0 }
+.story { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr); gap: 24px; height: calc(100vh - 150px); min-height: 460px }
+.story-l { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 16px; background: var(--veil) }
+.story-g { flex: 1 1 auto; min-height: 0 }
+.story-r { overflow: auto; min-height: 0; padding-right: 8px }
+.chart { position: relative; touch-action: none; user-select: none }
+.chart-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 1px }
+.chart-bars > div { flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0 }
+.chart-bars i { display: block; background: var(--bar) }
+.chart-bars i.hot { background: var(--ac) }
+.chart-bars > div:hover i { filter: brightness(1.3) }
+.chart-sel { position: absolute; top: 0; bottom: 0; background: var(--scan); border-inline: 1px solid var(--ac); pointer-events: none }
+.chart-tip { position: absolute; top: 4px; padding: 3px 8px; background: var(--bg); border: 1px solid var(--line); font-family: var(--font-mono), monospace; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 2 }
+.chart-lane { position: relative; height: 14px; display: block; width: 100%; background: none; border: 0; padding: 0 }
+.chart-lane i { position: absolute; top: 3px; bottom: 3px; min-width: 3px; background: var(--bar) }
+.chart-lane.ATTACK i { background: var(--ac) } .chart-lane.FAULT i { background: var(--fg) } .chart-lane.INCONCLUSIVE i { background: var(--tint) }
 .stage-svg text { font-family: var(--font-mono), monospace; font-size: 11px; fill: var(--fg) }
 .pbar { height: 8px; background: var(--line) }
 .pbar i { display: block; height: 100%; background: var(--bar) }
 .pbar i.top { background: var(--ac) }
 details.faq summary { list-style: none; padding: 14px 0; border-bottom: 1px solid var(--line) }
-input[type=range] { accent-color: var(--ac); width: 100% }
-.strip { position: fixed; z-index: 5; left: 40px; right: 40px; bottom: 12px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 22px; font-family: var(--mono); font-size: var(--cap); pointer-events: none }
+input[type=checkbox] { accent-color: var(--ac) }
+input[type=range] { appearance: none; width: 100%; height: 16px; background: none; margin: 0 }
+input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--bar) }
+input[type=range]::-webkit-slider-thumb { appearance: none; width: 10px; height: 16px; margin-top: -7px; background: var(--ac) }
+input[type=range]::-moz-range-track { height: 2px; background: var(--bar) }
+input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; border-radius: 0; background: var(--ac) }
+.strip { position: fixed; z-index: 5; left: 40px; right: 12px; bottom: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 22px; font-family: var(--mono); font-size: var(--cap); pointer-events: none }
 .strip > * { pointer-events: auto }
 .strip .g { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 0 6px }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
 .sign { min-height: calc(100vh - 80px); display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 64px; align-items: end; padding: 0 40px 96px; box-sizing: border-box }
 @media (max-width: 860px) {
-  .grid-2, .grid-side, .sign { grid-template-columns: minmax(0, 1fr) }
-  .head { padding: 12px 16px; font-size: 12px }
+  .grid-2, .grid-side, .sign, .story, .pk-detail { grid-template-columns: minmax(0, 1fr) }
+  .story { height: auto } .story-g { height: 260px; flex: none } .story-r { overflow: visible }
+  .lane-row { grid-template-columns: minmax(0, 1fr) auto }
+  .lane-row .sm { grid-column: 1 / -1 }
+  .mark { font-size: 28px }
+  .tabs .levels { margin-left: 0 }
+  .head { padding: 10px 16px; font-size: 12px }
   .nav { gap: 2px 16px }
   .pad, .hero, .sign { padding-left: 16px; padding-right: 16px }
-  .hero, .sign { min-height: calc(100dvh - 130px) }
+  .hero, .sign { min-height: calc(100dvh - 120px) }
   .strip { display: none }
   .pk { grid-template-columns: 54px 120px 120px 60px minmax(160px, 1fr) } .pk .hide-sm { display: none }
 }

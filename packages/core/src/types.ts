@@ -83,7 +83,9 @@ export interface Evidence {
 }
 
 export interface FixStep { title: string; why: string; windows?: string; linux?: string; router?: string }
-export interface StoryStep { key: string; title: string; caption: string; technical: string; packets: number[]; t?: number; edges: { from: string; to: string; label: string; bad?: boolean }[] }
+export interface StoryStep { key: string; title: string; caption: string; technical: string; analyst: string; packets: number[]; t?: number; edges: { from: string; to: string; label: string; bad?: boolean }[] }
+
+export interface LevelText { what: string; why: string; rule: string; sure: string }
 
 export interface Finding {
   id: string;           // F1, F2... stable within a report
@@ -100,6 +102,7 @@ export interface Finding {
   blast: string[];
   t0: number; t1: number;
   plain: string; technical: string; analyst: string;
+  levels: Record<Level, LevelText>;
   cause: string; whyNotTheOther: string; analogy: string;
   wireshark: string; bpf: string;
   fixSteps: FixStep[]; verifyBy: string;

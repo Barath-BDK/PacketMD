@@ -24,7 +24,8 @@ describe('differential against Scapy', () => {
 describe('ground truth', () => {
   for (const [name, e] of Object.entries(expected)) it(name, async () => {
     const r = await run(name);
-    for (const h of e.findings) expect(r.findings.filter((f) => f.lane !== 'BENIGN').map((f) => f.hypothesis)).toContain(h);
+    const got = r.findings.filter((f) => f.lane !== 'BENIGN').map((f) => (f.lane === 'INCONCLUSIVE' ? `inconclusive:${f.hypothesis}` : f.hypothesis));
+    for (const h of e.findings) expect(got).toContain(h);
   });
 });
 
@@ -65,6 +66,21 @@ describe('fixes are file-specific', () => {
 });
 
 describe('stories', () => {
+  it('explain why a benign verdict is benign', async () => {
+    const f = (await run('failover-gratuitous-arp')).findings.find((x) => x.lane === 'BENIGN')!;
+    expect(f.story.map((s) => s.key)).toEqual(['seen', 'flag', 'cleared', 'verdict']);
+    expect(f.story[2]!.caption.length).toBeGreaterThan(20);
+  });
+  it('show both sides and what is missing when inconclusive', async () => {
+    const f = (await run('arp-gateway-ambiguous')).findings.find((x) => x.lane === 'INCONCLUSIVE')!;
+    expect(f.story.map((s) => s.key)).toEqual(['seen', 'case-a', 'case-b', 'gap', 'next']);
+    expect(f.nextCapture).toBeTruthy();
+  });
+  it('give every reading level different words', async () => {
+    const f = (await run('arp-spoof')).findings[0]!;
+    expect(new Set([f.levels.beginner.what, f.levels.technical.what, f.levels.analyst.what]).size).toBe(3);
+    expect(new Set([f.levels.beginner.why, f.levels.technical.why, f.levels.analyst.why]).size).toBe(3);
+  });
   it('start at the attacker, not at earlier innocent traffic', async () => {
     const r = await run('arp-spoof'), f = r.findings[0]!;
     const start = f.story.find((s) => s.key === 'start')!;
