@@ -215,9 +215,14 @@ describe('MITRE ATT&CK labels', () => {
       if (t) { expect(t.id, id).toMatch(/^T\d{4}(\.\d{3})?$/); expect(t.url).toBe(`https://attack.mitre.org/techniques/${t.id.replace('.', '/')}/`); }
     }
   });
+  it('uses the technique MITRE itself names for the behaviour', () => {
+    expect(techniqueOf('syn-flood')?.id).toBe('T1499.001');
+    expect(techniqueOf('llmnr-poison')?.name).toContain('Name Resolution Poisoning');
+    for (const none of ['vlan-hopping', 'mac-flood', 'rst-injection', 'parser-evasion']) expect(techniqueOf(none), none).toBeNull();
+  });
   it('appears in the Markdown export', async () => {
     const s = fileSource('samples/arp-spoof.pcap'), r = await analyze(s, 'arp-spoof.pcap');
     s.close();
-    expect(toMarkdown(r)).toContain('MITRE ATT&CK: T1557.002 ARP Cache Poisoning');
+    expect(toMarkdown(r)).toContain('MITRE ATT&CK: T1557.002 Adversary-in-the-Middle: ARP Cache Poisoning');
   });
 });

@@ -36,7 +36,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 - Timeline you can adjust: packets or bytes, level of detail, drag to zoom, highlight one problem
 - Investigator: packet list, decoded tree, hex view with field highlighting, our own filter language, Follow Stream, copy as Wireshark filter or BPF
 - Activity: domain attribution from SNI, HTTP Host and DNS, inferred traffic class, offline reputation checks
-- MITRE ATT&CK labels: each attack finding links to the closest published technique, shown as a reference and not a claim about who did it
+- MITRE ATT&CK labels: attack findings link to the matching technique, checked page by page against ATT&CK v20. A label appears only where MITRE describes the behaviour, so forged TCP resets, MAC flooding, VLAN hopping and crafted packets carry none
 - A designed PDF report, a separate document rather than a print of the screen, with a summary, proof packets, fix commands and page numbers
 - Known-good baseline, Markdown and JSON export, optional accounts and share links
 - Investigations: logged-in users can reopen, in full, the reports they chose to save, and delete them. Packets are never stored and IP and MAC addresses are replaced with labels, but domains, hostnames, URL paths and the file name are kept, and the UI says so. Because packets are gone, Investigator and Verify Fix need the original capture

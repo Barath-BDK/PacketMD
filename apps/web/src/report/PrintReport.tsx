@@ -119,7 +119,7 @@ export function PrintReport({ r, archived }: { r: Report; archived: boolean }) {
         <h2 className="pr-sec">How to read this report</h2>
         {r.findings.length > 0 && <>
           <dl className="pr-key">{Object.keys(LANE).filter((l) => r.findings.some((f) => f.lane === l)).map((l) => <div key={l}><dt>{LANE[l]}</dt><dd>{MEANS[l]}</dd></div>)}</dl>
-          <p>Each finding is tied to the exact packets that prove it. ATT&amp;CK labels name the closest published technique and are a reference, not a claim about who did this.</p>
+          <p>Each finding is tied to the exact packets that prove it. ATT&amp;CK labels follow MITRE ATT&amp;CK v20 and appear only where MITRE describes the behaviour. They are a reference, not a claim about who did this.</p>
         </>}
         <p>PacketMD reads what a capture shows and nothing more. It cannot see inside encrypted traffic, and a clean result means nothing it knows how to detect was found, never that a network is safe. Detection was measured on lab captures only. Check every command before running it.</p>
       </section>
