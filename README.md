@@ -143,7 +143,8 @@ Our parser's packet count, addresses and ports are checked against Scapy on ever
 - TCP streams are not reassembled across packets for TLS or HTTP parsing, so a Client Hello split over two packets gives no SNI.
 - Thresholds are tuned on lab traffic and will need adjustment on busy real networks.
 - 802.11, TLS decryption and live capture are out of scope.
-- Not built: time-sequence graph, packet diff, export of a selection as pcap, saved filters, online reputation lookup, public Storage bucket for samples (samples ship with the app instead).
+- Not built: TCP time-sequence graph, packet and flow diff, export of a selection as pcap, saved filters, bookmarks, column show and hide, list sorting, pin and hide noise, hex-to-field selection, Learn glossary, online reputation lookup (the app states offline checks only), JA3 family matching, attribution accuracy scoring, and a public Storage bucket for samples (samples ship with the app instead).
+- Password complexity is enforced in the browser. The same minimums must also be set in Supabase Auth.
 
 ## Libraries and APIs
 

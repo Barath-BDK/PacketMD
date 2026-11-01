@@ -12,8 +12,8 @@ export default function Share() {
     if (!t || !/^[0-9a-f]{32}$/.test(t)) { setState('gone'); return; }
     readShare(t).then((d) => { if (d) { set(d); setState('ok'); } else setState('gone'); }, () => setState('gone'));
   }, []);
-  if (state === 'loading') return <div className="pad"><p className="sm">Opening shared report</p></div>;
-  if (state === 'gone' || !data) return <div className="pad"><h1 className="disp h2">This link has expired or does not exist.</h1></div>;
+  if (state === 'loading') return <div className="center"><p className="sm">Opening shared report</p></div>;
+  if (state === 'gone' || !data) return <div className="center"><h1 className="disp h2">This link has expired or does not exist.</h1></div>;
   return (
     <div className="pad">
       <p className="sm">Shared report. Addresses are replaced with labels.</p>

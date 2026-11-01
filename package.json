@@ -18,16 +18,18 @@
     "handshake": "tsx scripts/handshake.ts"
   },
   "devDependencies": {
+    "@packetmd/core": "workspace:*",
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@packetmd/core": "workspace:*"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   },
   "type": "module",
   "pnpm": {
     "overrides": {
-      "postcss": ">=8.5.23"
+      "postcss": ">=8.5.23",
+      "minimatch": ">=11.0.1"
     }
   }
 }

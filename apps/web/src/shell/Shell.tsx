@@ -101,7 +101,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div ref={root} className={`cr-root hs-${HOVERS[look.hover]!.toLowerCase()}`}>
         <Stage root={root} look={look} mode={mode} page={page} api={api} setPhase={setPhase} />
         <header className="head">
-          <button type="button" className="cr-btn mark" data-safe="ui" onClick={() => go('/')} aria-label="PacketMD home">Packet<span className="ac">MD</span></button>
+          <button type="button" className="cr-btn mark" data-safe="ui" onClick={() => go('/')} aria-label="PacketMD home"><svg className="logo" viewBox="0 0 32 32" aria-hidden="true"><path className="logo-c" d="M3 10V3h7M22 3h7v7M29 22v7h-7M10 29H3v-7" /><path className="logo-p" d="M6 17h5.5l2.5-7.5 4 14 2.6-6.5H26" /></svg>Packet<span className="ac">MD</span></button>
           <div className="nav" data-safe="ui">
             <nav aria-label="Main" className="nav">
               {nav.map(([h, l]) => <Hv key={h} className="under" aria-current={path === h ? 'page' : undefined} onClick={() => go(h)}>{l}</Hv>)}

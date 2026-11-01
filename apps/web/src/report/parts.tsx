@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { locator, neutralize, toMarkdown, type Evidence, type Finding, type Report } from '@packetmd/core';
 import { useCase } from '@/lib/engine';
+import { hasBackend, sendFeedback } from '@/lib/backend';
 
 export function Lane({ l }: { l: string }) { return <span className={`lane lane-${l}`}>{l}</span>; }
 
@@ -23,6 +24,8 @@ export function useInk(dep: unknown) {
     const place = () => {
       const on = box.current?.querySelector<HTMLElement>('[aria-selected="true"], [aria-pressed="true"]');
       if (!on || !ink.current) return;
+      const b = box.current!;
+      if (b.scrollWidth > b.clientWidth) b.scrollTo({ left: on.offsetLeft - b.clientWidth / 2 + on.offsetWidth / 2, behavior: 'smooth' });
       ink.current.style.width = `${on.offsetWidth}px`;
       ink.current.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop + on.offsetHeight - 2}px)`;
     };
@@ -43,6 +46,19 @@ const HEAD = {
   technical: { why: 'Root cause', rule: 'Differential', sure: 'Confidence' },
   analyst: { why: 'Attribution and signal weights', rule: 'Competing explanations and scores', sure: 'How the decision was made' },
 };
+
+function Feedback({ type }: { type: string }) {
+  const [msg, set] = useState('');
+  if (!hasBackend) return null;
+  return (
+    <p className="sm" style={{ marginBottom: 0, marginTop: 14 }}>
+      Was this right?{' '}
+      <button type="button" className="cr-btn st link" onClick={() => void sendFeedback(type, 'correct').then(set)}>Yes</button>{' '}
+      <button type="button" className="cr-btn st link" onClick={() => void sendFeedback(type, 'false-positive').then(set)}>No, false alarm</button>
+      <span role="status"> {msg}</span>
+    </p>
+  );
+}
 
 export function FindingCard({ f, r }: { f: Finding; r: Report }) {
   const c = useCase(), t = f.levels[c.level], h = HEAD[c.level];
@@ -73,6 +89,7 @@ export function FindingCard({ f, r }: { f: Finding; r: Report }) {
       </div>}
       {raw && <div style={{ overflowX: 'auto', marginTop: 12 }}><table className="t"><thead><tr><th scope="col">No.</th><th scope="col">Proto</th><th scope="col">Offset</th><th scope="col">Info</th></tr></thead>
         <tbody>{f.evidence.slice(0, 8).map((e) => <tr key={e.no}><td className="dat">{e.no}</td><td className="dat">{e.proto}</td><td className="dat">0x{e.dataOffset.toString(16)}</td><td className="dat">{e.info}</td></tr>)}</tbody></table></div>}
+      <Feedback type={f.hypothesis} />
     </article>
   );
 }

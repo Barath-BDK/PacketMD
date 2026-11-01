@@ -17,6 +17,19 @@ export async function saveReport(r: Report) {
   return error ? 'Could not save this report.' : 'Saved to your account.';
 }
 
+export async function sendFeedback(findingType: string, verdict: 'correct' | 'false-positive') {
+  if (!sb) return 'Backend not configured.';
+  const { data } = await sb.auth.getUser();
+  if (!data.user) return 'Log in to send feedback.';
+  const { error } = await sb.from('feedback').insert({ owner: data.user.id, finding_type: findingType, verdict });
+  return error ? 'Could not send that.' : 'Thanks, noted.';
+}
+
+export async function savedReports() {
+  const { data } = (await sb?.from('reports').select('id, created_at, summary').order('created_at', { ascending: false }).limit(10)) ?? {};
+  return (data ?? []) as { id: string; created_at: string; summary: { headline: string; packets: number } }[];
+}
+
 export async function shareReport(r: Report) {
   if (!sb) throw new Error('Backend not configured.');
   const { data, error } = await sb.functions.invoke('share-report', { body: payload(r) });

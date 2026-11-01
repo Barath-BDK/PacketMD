@@ -22,6 +22,33 @@ describe('differential against Scapy', () => {
   });
 });
 
+describe('container formats', () => {
+  const same = async (other: Report) => {
+    const base = await run('arp-spoof');
+    expect(other.rows.length).toBe(base.rows.length);
+    expect(other.rows.map((r) => r.info)).toEqual(base.rows.map((r) => r.info));
+    expect(other.findings.map((f) => f.hypothesis)).toEqual(base.findings.map((f) => f.hypothesis));
+  };
+  it('reads valid pcapng identically to pcap', async () => {
+    const s = fileSource('samples/format-check.pcapng'), r = await analyze(s, 'format-check.pcapng');
+    s.close();
+    expect(r.defense.format).toBe('pcapng');
+    expect(r.defense.skipped).toBe(0);
+    await same(r);
+  });
+  it('reads big-endian pcap identically', async () => {
+    const b = new Uint8Array(readFileSync('samples/arp-spoof.pcap'));
+    const flip = (o: number, n: number) => b.subarray(o, o + n).reverse();
+    flip(0, 4); flip(4, 2); flip(6, 2); flip(8, 4); flip(12, 4); flip(16, 4); flip(20, 4);
+    for (let o = 24; o < b.length;) {
+      const cap = new DataView(b.buffer).getUint32(o + 8, true);
+      for (const x of [0, 4, 8, 12]) flip(o + x, 4);
+      o += 16 + cap;
+    }
+    await same(await analyze({ size: b.length, read: async (o, l) => b.subarray(o, o + l) }, 'be.pcap'));
+  });
+});
+
 describe('ground truth', () => {
   for (const [name, e] of Object.entries(expected)) it(name, async () => {
     const r = await run(name);

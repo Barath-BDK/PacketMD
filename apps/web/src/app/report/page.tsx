@@ -92,7 +92,7 @@ function Activity({ r }: { r: Report }) {
     <div className="veil" style={{ padding: 16 }}>
       <p className="muted" style={{ marginTop: 0, maxWidth: '70ch', lineHeight: 1.5 }}>A capture holds no process names or user accounts, so these are inferred classes with the basis shown. Checks here are offline only: nothing leaves your browser.</p>
       <div style={{ overflowX: 'auto' }}><table className="t"><thead><tr><th scope="col">{b ? 'Site or service' : 'Domain'}</th>{!b && <th scope="col">How we know</th>}<th scope="col">{b ? 'Looks like' : 'Class'}</th><th scope="col">Down / up</th>{!b && <th scope="col">Connections</th>}{!b && <th scope="col">Trouble</th>}<th scope="col">Rating</th></tr></thead>
-        <tbody>{r.activity.map((x) => <tr key={x.domain}><td>{x.domain}</td>{!b && <td className="dat">{x.source}, <Proof nos={[x.sourcePacket]} /></td>}<td>{x.klass}{a && <div className="sm">{x.basis.join(', ')}</div>}</td><td className="dat">{kb(x.bytesIn)} / {kb(x.bytesOut)}</td>{!b && <td className="dat">{x.requests}</td>}{!b && <td className="dat">{x.health}</td>}<td className={x.rating === 'Clean-looking' || x.rating === 'Unknown' ? '' : 'ac'}>{x.rating}{x.reasons.length ? <div className="sm">{x.reasons.join('. ')}</div> : null}</td></tr>)}</tbody></table></div>
+        <tbody>{r.activity.map((x) => <tr key={x.domain}><td><button type="button" className="cr-btn st link" onClick={() => { c.setFilter(x.conv.length && x.source.startsWith('No name') ? `host == ${x.domain}` : `domain == ${x.domain}`); c.setTab('investigator'); }}>{x.domain}</button></td>{!b && <td className="dat">{x.source}, <Proof nos={[x.sourcePacket]} /></td>}<td>{x.klass}{a && <div className="sm">{x.basis.join(', ')}</div>}</td><td className="dat">{kb(x.bytesIn)} / {kb(x.bytesOut)}</td>{!b && <td className="dat">{x.requests}</td>}{!b && <td className="dat">{x.health}</td>}<td className={x.rating === 'Clean-looking' || x.rating === 'Unknown' ? '' : 'ac'}>{x.rating}{x.reasons.length ? <div className="sm">{x.reasons.join('. ')}</div> : null}</td></tr>)}</tbody></table></div>
     </div>
   );
 }
@@ -157,9 +157,11 @@ export default function ReportPage() {
       <h1 className="disp report-title rise d1">{head}. {rest.length > 0 && <span className="ac">{rest.join('. ')}</span>}</h1>
       <div>
         <div ref={anchor} style={{ height: 12 }} />
+        <div className="tabbar">
         <div ref={box} role="tablist" aria-label="Report sections" className="tabs ink-wrap">
           <i ref={ink as React.RefObject<HTMLElement>} className="ink" />
           {TABS.map(([id, label]) => <Hv key={id} role="tab" className="tab" aria-selected={c.tab === id} onClick={() => c.setTab(id)}>{label}{id === 'findings' && n ? ` ${n}` : ''}</Hv>)}
+        </div>
           <Levels />
         </div>
         <div className={`panel ${leaving ? 'leaving' : 'entering'}`} key={shown} role="tabpanel" style={{ paddingTop: 16, '--dx': `${dir.current * 16}px` } as React.CSSProperties}>

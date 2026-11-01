@@ -43,6 +43,7 @@ interface CaseState {
   open(file: File): Promise<boolean>; openSample(name: string): Promise<boolean>; reset(): void;
   packet(row: PacketRow): Promise<{ tree: TreeNode[]; bytes: number[] }>;
   stream(rows: { row: PacketRow; fromA: boolean; start: number }[]): Promise<{ parts: { fromA: boolean; text: string }[]; truncated: boolean }>;
+  filter: string | null; setFilter(q: string | null): void;
   jump: number | null; setJump(n: number | null): void; tab: string; setTab(t: string): void; level: 'beginner' | 'technical' | 'analyst'; setLevel(l: 'beginner' | 'technical' | 'analyst'): void;
   baseline: Baseline | null; setBaseline(b: Baseline | null): void;
 }
@@ -59,6 +60,7 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
   const [gate, setGate] = useState<GateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [jump, setJump] = useState<number | null>(null);
+  const [filter, setFilter] = useState<string | null>(null);
   const [tab, setTab] = useState('verdict');
   const [level, setLevel] = useState<'beginner' | 'technical' | 'analyst'>('beginner');
   const [baseline, setBaseline] = useState<Baseline | null>(null);
@@ -97,7 +99,7 @@ export function CaseProvider({ children }: { children: React.ReactNode }) {
     report, file, sandboxed, busy, progress, gate, error, open, openSample,
     reset: () => { setReport(null); setFile(null); },
     packet: (row) => ask('packet', { row }), stream: (rows) => ask('stream', { rows }),
-    jump, setJump, tab, setTab, level, setLevel, baseline, setBaseline,
-  }), [report, file, sandboxed, busy, progress, gate, error, open, openSample, ask, jump, tab, level, baseline]);
+    filter, setFilter, jump, setJump, tab, setTab, level, setLevel, baseline, setBaseline,
+  }), [report, file, sandboxed, busy, progress, gate, error, open, openSample, ask, filter, jump, tab, level, baseline]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

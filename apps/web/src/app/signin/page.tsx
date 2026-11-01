@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { User } from '@supabase/supabase-js';
 import { checkPassword, passwordOk } from '@packetmd/core';
-import { hasBackend, roleOf, sb } from '@/lib/backend';
+import { hasBackend, roleOf, savedReports, sb } from '@/lib/backend';
 import { Hv, Scan, useShell } from '@/shell/Shell';
 
 function Password({ label, value, onChange, auto, placeholder, describedBy }: { label: string; value: string; onChange(v: string): void; auto: string; placeholder?: string; describedBy?: string }) {
@@ -52,7 +52,9 @@ export default function SignIn() {
   const [mode, setMode] = useState<'login' | 'create'>('login');
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null), [role, setRole] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Awaited<ReturnType<typeof savedReports>>>([]);
   const creating = mode === 'create';
+  useEffect(() => { if (user) void savedReports().then(setSaved); }, [user]);
 
   useEffect(() => { sb?.auth.getUser().then(async ({ data }) => { setUser(data.user); setRole(await roleOf(data.user)); }); }, []);
   const card = useRef<HTMLDivElement>(null), body = useRef<HTMLFormElement>(null);
@@ -96,13 +98,14 @@ export default function SignIn() {
           <Scan tight={creating} type="submit" disabled={busy || !ready}>{creating ? 'Create account' : 'Log in'}</Scan>
           <p style={{ margin: 0, fontSize: 15, textAlign: 'center' }}>
             {creating ? 'Already have an account? ' : "Don't have an account? "}
-            <button type="button" className="cr-btn ac" style={{ textDecoration: 'underline', fontWeight: 600 }} onClick={() => switchTo(creating ? 'login' : 'create')}>{creating ? 'Log in' : 'Create one'}</button>
+            <button type="button" className="cr-btn ac link" style={{ textDecoration: 'underline', fontWeight: 600 }} onClick={() => switchTo(creating ? 'login' : 'create')}>{creating ? 'Log in' : 'Create one'}</button>
           </p>
         </form>}
         {user && <>
           <h1 className="disp h2" style={{ margin: 0 }}>Welcome back</h1>
           <p style={{ margin: 0 }}>Signed in as <strong>{role === 'admin' ? 'Admin' : 'Analyst'}</strong>.</p>
           {role === 'admin' && <Scan onClick={() => go('/admin')}>Open admin</Scan>}
+          {saved.length > 0 && <div><p className="sm" style={{ margin: '0 0 6px' }}>Your saved reports</p>{saved.map((x) => <p key={x.id} style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.4 }}>{x.summary.headline} <span className="sm">{new Date(x.created_at).toLocaleDateString()}</span></p>)}</div>}
           <Hv onClick={() => sb?.auth.signOut().then(() => { setUser(null); setRole(null); })}>Log out</Hv>
         </>}
         {msg && <p role="status" className="ac" style={{ margin: 0 }}>{msg}</p>}

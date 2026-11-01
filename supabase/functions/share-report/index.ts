@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3';
 
-const MAX_BODY = 256 * 1024, MAX_PER_HOUR = 10, TTL_DAYS = 7;
+const MAX_BODY = 256 * 1024, MAX_PER_HOUR = 10, MAX_GLOBAL_PER_HOUR = 300, TTL_DAYS = 7;
 
 const text = (n: number) => z.string().max(n);
 const Finding = z.object({
@@ -54,10 +54,15 @@ Deno.serve(async (req) => {
     if (!parsed.success) return send(400, { error: 'invalid body' });
 
     const client = db();
-    const who = await digest((req.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0]!.trim());
+    // A client can write its own x-forwarded-for, so the edge's headers come first and the last hop is the fallback.
+    const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-real-ip') ?? (req.headers.get('x-forwarded-for') ?? 'unknown').split(',').at(-1)!.trim();
+    const who = await digest(ip);
     const { data: allowed, error: rateError } = await client.rpc('bump_share_rate', { k: who, max_hits: MAX_PER_HOUR });
     if (rateError) return send(500, { error: 'unavailable' });
     if (!allowed) return send(429, { error: 'rate limited' });
+    // A ceiling for the whole service, in case someone rotates addresses.
+    const { data: open } = await client.rpc('bump_share_rate', { k: 'global', max_hits: MAX_GLOBAL_PER_HOUR });
+    if (!open) return send(429, { error: 'rate limited' });
 
     const { data: report, error } = await client.from('reports').insert({ ...parsed.data, owner: null }).select('id').single();
     if (error) return send(500, { error: 'unavailable' });

@@ -18,8 +18,8 @@ export default function Admin() {
       setRows(fb.data ?? []); setCounts({ users: us.count ?? 0, reports: rp.count ?? 0 }); set('ok');
     })();
   }, []);
-  if (state === 'loading') return <div className="pad"><p className="sm">Checking your role</p></div>;
-  if (state === 'denied') return <div className="pad"><h1 className="disp h2">Admins only.</h1><p className="muted">Sign in with an admin account to see this page.</p></div>;
+  if (state === 'loading') return <div className="center"><p className="sm">Checking your role</p></div>;
+  if (state === 'denied') return <div className="center"><h1 className="disp h2">Admins only.</h1><p className="muted">Sign in with an admin account to see this page.</p></div>;
   return (
     <div className="pad">
       <h1 className="disp h2 rise d1">Admin</h1>

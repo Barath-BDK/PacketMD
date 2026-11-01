@@ -1,3 +1,4 @@
+import { pseudonymize } from '../apps/web/src/lib/payload';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { analyze, BUDGET, checkPassword, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
@@ -118,5 +119,13 @@ describe('claim-to-packet binding and stories', () => {
         }
       }
     }
+  });
+});
+
+describe('share payload', () => {
+  it('replaces IPv4, IPv6 and MAC addresses but not times', () => {
+    const out = JSON.stringify(pseudonymize({ a: '192.168.1.10 and 00:1a:2b:00:00:10', b: '2001:db8::1 and fe80::1:2', c: 'at 10:30:15' }));
+    expect(out).not.toMatch(/192\.168|00:1a|2001:db8|fe80/);
+    expect(out).toContain('10:30:15');
   });
 });

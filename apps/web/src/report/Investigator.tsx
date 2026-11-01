@@ -40,6 +40,7 @@ export function Investigator({ r }: { r: Report }) {
   const [field, setField] = useState<TreeNode | null>(null);
   const [stream, setStream] = useState<{ parts: { fromA: boolean; text: string }[]; truncated: boolean } | null>(null);
   const [goTo, setGoTo] = useState('');
+  const [wall, setWall] = useState(false);
   const list = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(() => {
@@ -65,6 +66,7 @@ export function Investigator({ r }: { r: Report }) {
     setTimeout(() => { if (list.current) list.current.scrollTop = Math.max(0, (n - 2) * ROW); }, 0);
   };
   useEffect(() => { if (c.jump) { jumpTo(c.jump); c.setJump(null); } }, [c.jump]);
+  useEffect(() => { if (c.filter !== null) { setQ(c.filter); c.setFilter(null); } }, [c.filter]);
 
   const follow = () => {
     if (!cur) return;
@@ -89,10 +91,11 @@ export function Investigator({ r }: { r: Report }) {
 
   return (
     <div className="veil" style={{ padding: 16 }}>
-      <div className="grid-side" style={{ gridTemplateColumns: 'minmax(0, 1fr) 180px', gap: 16 }}>
+      <datalist id="pk-fields">{['ip.addr == ', 'ip.src == ', 'ip.dst == ', 'tcp.port == ', 'udp.port == ', 'proto == ', 'mac == ', 'domain == ', 'host == ', 'dns.qry.name contains ', 'frame.number in ', 'flag:retransmit', 'flag:rst', 'flag:zerowin', ...r.findings.map((f) => `finding:${f.id}`)].map((x) => <option key={x} value={x} />)}</datalist>
+      <div className="inv-top">
         <div>
           <label className="sm" htmlFor="pk-filter">Filter packets</label>
-          <input id="pk-filter" className="cr-input mono" aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66 and proto == ARP" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
+          <input id="pk-filter" list="pk-fields" className="cr-input mono" aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66 and proto == ARP" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
         </div>
         <form onSubmit={(e) => { e.preventDefault(); jumpTo(+goTo); }}>
           <label className="sm" htmlFor="pk-go">Go to packet</label>
@@ -103,14 +106,14 @@ export function Investigator({ r }: { r: Report }) {
       <p className={err ? 'ac sm' : 'sm'} role="status" style={{ margin: '6px 0' }}>{err || `${rows.length} of ${r.rows.length} packets. Click a packet to open its details.`}</p>
       <div style={{ overflowX: 'auto' }}>
         <div style={{ minWidth: 780 }}>
-          <div className="pk" aria-hidden="true" style={{ color: 'var(--small)' }}><span /><span>No.</span><span>Time</span><span>Source</span><span>Destination</span><span>Proto</span><span className="hide-sm">Len</span><span>Info</span></div>
+          <div className="pk" style={{ color: 'var(--small)' }}><span /><span>No.</span><button type="button" className="cr-btn st" aria-label="Switch time format" onClick={() => setWall(!wall)} style={{ pointerEvents: 'auto', textAlign: 'left' }}>{wall ? 'Clock' : 'Time'}</button><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span></div>
           <div ref={list} data-lenis-prevent onScroll={(e) => setTop(e.currentTarget.scrollTop)} style={{ height: 'min(' + VIEW + 'px, calc(100vh - 300px))', minHeight: 320, overflowY: 'auto', position: 'relative' }}>
             <div style={{ height: rows.length * ROW + (open >= 0 ? DETAIL : 0), position: 'relative' }}>
               {slice.map((p) => {
                 const idx = rows.indexOf(p), isOpen = idx === open;
                 return (
-                  <button type="button" aria-expanded={isOpen} key={p.no} className={`pk ${isOpen ? 'on' : ''} ${p.flags?.length ? 'bad' : ''}`} onClick={() => toggle(p)} style={{ position: 'absolute', left: 0, right: 0, top: yOf(idx) }}>
-                    <span className="tw" aria-hidden="true">{'>'}</span><span>{p.no}</span><span>{(p.ts - r.t0).toFixed(4)}</span><span>{p.src}</span><span>{p.dst}</span><span>{p.proto}</span><span className="hide-sm">{p.len}</span><span>{p.info}</span>
+                  <button type="button" aria-expanded={isOpen} key={p.no} className={`pk ${isOpen ? 'on' : ''} ${p.flags?.length ? 'bad' : ''}`} onClick={() => toggle(p)} style={{ position: 'absolute', left: 0, right: 0, top: idx * ROW, transform: `translateY(${yOf(idx) - idx * ROW}px)` }}>
+                    <span className="tw" aria-hidden="true">{'>'}</span><span>{p.no}</span><span>{wall ? new Date(p.ts * 1000).toISOString().slice(11, 23) : (p.ts - r.t0).toFixed(4)}</span><span>{p.src}</span><span>{p.dst}</span><span>{p.proto}</span><span>{p.len}</span><span>{p.info}</span>
                   </button>
                 );
               })}

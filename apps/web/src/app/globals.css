@@ -93,6 +93,8 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 @keyframes crrise { from { opacity: 0; transform: translateY(36px) } to { opacity: 1; transform: none } }
 
 .head { position: relative; z-index: 6; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 40px; font-family: var(--font-mono), monospace; font-size: 13px; background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 -1px var(--ac) }
+.logo { width: 34px; height: 34px; margin-right: 10px; flex: none; fill: none; stroke-width: 2.6; display: inline-block; vertical-align: -6px }
+.logo-c { stroke: var(--ac) } .logo-p { stroke: var(--fg); stroke-linejoin: round; stroke-linecap: round }
 .mark { font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: .01em }
 .nav { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center }
 .page { position: relative; z-index: 2; flex: 1 1 auto; min-height: 0; overflow: auto; box-sizing: border-box }
@@ -108,8 +110,15 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .solid { background: var(--panel) }
 .hero + section { content-visibility: auto; contain-intrinsic-size: auto 900px }
 .rule { border-bottom: 1px solid var(--line) }
-.tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; font-family: var(--font-mono), monospace; font-size: 13px; position: sticky; top: 0; z-index: 4; padding: 8px 0; background: var(--panel); border-bottom: 1px solid var(--line) }
-.tabs .levels { margin-left: auto }
+.tabbar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 6px 22px; padding: 8px 0; background: var(--panel); border-bottom: 1px solid var(--line) }
+.tabs { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; align-items: center; gap: 6px 22px; font-family: var(--font-mono), monospace; font-size: 13px }
+.tab, .under, .nav button { white-space: nowrap }
+.tabbar .levels { flex: none }
+.link { padding: 6px 2px; text-decoration: underline; text-underline-offset: 3px }
+.inv-top { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 16px }
+.chart-grid { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px }
+.axis { display: flex; justify-content: space-between; padding-top: 4px; white-space: nowrap }
+.pad > h1 + p { margin-top: 14px }
 .report-title { font-size: clamp(30px, 3.6vw, 52px); margin: 0 }
 .tab, .under { padding: 8px 0; border-bottom: 1px solid transparent }
 .tab[aria-selected="true"], .under[aria-pressed="true"], .under[aria-current="page"] { border-bottom-color: var(--ac) }
@@ -142,7 +151,7 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 84px; border-bottom: 1px solid var(--bar) }
 .bars i { flex: 1 1 0; background: var(--bar); min-height: 1px; display: block }
 .bars i.hot { background: var(--ac) }
-.pk { transition: top .24s cubic-bezier(.3, .7, .2, 1); display: grid; grid-template-columns: 16px 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
+.pk { transition: transform .24s cubic-bezier(.3, .7, .2, 1); display: grid; grid-template-columns: 16px 62px 92px 150px 150px 70px 56px minmax(240px, 1fr); gap: 0 10px; height: 26px; line-height: 26px; font-family: var(--font-mono), monospace; font-size: 12px; white-space: nowrap; overflow: hidden; width: 100%; background: none; border: 0; color: inherit; text-align: left; padding: 0 6px }
 .pk > span { overflow: hidden; text-overflow: ellipsis }
 .pk:hover { background: var(--scan) }
 .pk.on { background: var(--ac); color: var(--on); position: absolute }
@@ -212,17 +221,37 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 @media (max-width: 860px) {
   .grid-2, .grid-side, .story, .pk-detail, .auth-grid { grid-template-columns: minmax(0, 1fr) }
   .story { height: auto } .story-g { height: 260px; flex: none } .story-r { overflow: visible }
-  .lane-row { grid-template-columns: minmax(0, 1fr) auto }
-  .lane-row .sm { grid-column: 1 / -1 }
+  .lane-row { grid-template-columns: minmax(0, 1fr); gap: 6px }
+  .inv-top { grid-template-columns: minmax(0, 1fr) }
+  .tabbar { flex-direction: column; align-items: stretch; padding: 4px 0 }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: none }
+  .tabs::-webkit-scrollbar { display: none }
+  .head > .nav { display: contents }
+  .head > .nav > .mt { order: 1; margin-left: auto }
+  .head nav.nav { order: 2; width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; justify-content: space-between }
+  .head nav.nav::-webkit-scrollbar { display: none }
+  .mark { min-height: 36px; display: inline-flex; align-items: center }
+  .link { padding: 9px 4px; display: inline-block }
+  .story-l .hv, .veil .hv { padding: 9px 0 }
+  .chip { padding: 8px 0; display: inline-block }
+  .flt .btn { min-height: 36px }
+  input[type=range] { height: 36px }
+  .stage-svg text { font-size: 17px }
+  .tl-prob { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px }
+  .tl-prob .dat { grid-column: 1; grid-row: 2 }
+  .chart-grid { grid-template-columns: 34px minmax(0, 1fr); gap: 4px }
+  .axis span:nth-child(even) { display: none }
   .mark { font-size: 28px }
-  .tabs .levels { margin-left: 0 }
+  .cr-btn.st.sm { padding-block: 8px !important }
+  .logo { width: 28px; height: 28px; margin-right: 8px; vertical-align: -5px }
+
   .head { padding: 10px 16px; font-size: 12px }
   .nav { gap: 2px 16px }
   .pad, .hero { padding-left: 16px; padding-right: 16px }
   .hero, .sign, .center { min-height: calc(100dvh - 120px) }
   .pad { padding-top: 28px }
   .strip { display: none }
-  .pk { grid-template-columns: 54px 120px 120px 60px minmax(160px, 1fr) } .pk .hide-sm { display: none }
+  
 }
 @media (prefers-reduced-motion: reduce) {
   .rise, .flip, .pk-detail, .panel.entering { animation: none }

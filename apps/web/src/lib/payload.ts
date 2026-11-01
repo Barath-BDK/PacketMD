@@ -6,7 +6,9 @@ export function pseudonymize<T>(value: T): T {
   const swap = (kind: string) => (m: string) => { if (!seen.has(m)) seen.set(m, `${kind}-${seen.size + 1}`); return seen.get(m)!; };
   const text = JSON.stringify(value)
     .replace(/\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b/gi, swap('mac'))
-    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, swap('host'));
+    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, swap('host'))
+    // IPv6 needs at least two colons, so times like 10:30 are left alone.
+    .replace(/(?<![\w:])(?:[0-9a-f]{1,4}:){2,7}(?::?[0-9a-f]{1,4})+(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:)+:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*)?(?![\w:])/gi, (m) => (/^\d{1,2}(:\d{2}){1,2}$/.test(m) ? m : swap('host')(m)));
   return JSON.parse(text) as T;
 }
 
