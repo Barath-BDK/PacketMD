@@ -16,6 +16,8 @@ export const BGS = [{ id: 1, label: 'Topo', pair: 1 }, { id: 0, label: 'Wave', p
 export const DIMS = [{ label: 'Normal', v: 1 }, { label: 'Dim', v: 0.55 }, { label: 'Low', v: 0.3 }];
 export const TRANSITIONS = [{ label: 'Match', kind: -1, dur: 0 }, { label: 'Flood', kind: 1, dur: 1500 }, { label: 'Break', kind: 2, dur: 1350 }, { label: 'Surge', kind: 3, dur: 1150 }, { label: 'Tide', kind: 0, dur: 1250 }, { label: 'Burn', kind: 4, dur: 1500 }, { label: 'Shatter', kind: 5, dur: 1300 }, { label: 'Ping', kind: 6, dur: 1400 }, { label: 'Sweep', kind: 7, dur: 1200 }, { label: 'Scan', kind: 8, dur: 1350 }];
 
+const MAX_HOLD_MS = 8000;
+
 const rgb = (hex: string) => { const n = parseInt(hex.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -36,7 +38,7 @@ function program(cv: HTMLCanvasElement, fs: string, names: string[]) {
 }
 
 export interface Look { version: number; transition: number; hover: number; small: number; bg: number; dim: number }
-export interface StageApi { run(mode: 'dark' | 'light', swap: () => void): void; scene(name: string): void; fade(state: 'idle' | 'out' | 'pre'): void }
+export interface StageApi { run(mode: 'dark' | 'light', swap: () => void, landed?: () => boolean): void; scene(name: string): void; fade(state: 'idle' | 'out' | 'pre'): void }
 
 export function Stage({ root, look, mode, page, api, setPhase }: {
   root: React.RefObject<HTMLDivElement | null>; look: Look; mode: 'dark' | 'light'; page: string;
@@ -62,7 +64,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     const rects = new Float32Array(40);
     let count = 0, uiCount = 0, edge = 0.43, gA = live.current.look.bg, gB = gA;
     let trail: { x: number; y: number; age: number }[] = [], shots: { x: number; y: number; start: number }[] = [];
-    let tx: null | { kind: number; dur: number; start: number; swapped: boolean; swap: () => void; fill: number[]; line: number[]; ox: number; oy: number } = null;
+    let tx: null | { kind: number; dur: number; start: number; swapped: boolean; swap: () => void; landed: () => boolean; held: number; shown: boolean; hidden: boolean; fill: number[]; line: number[]; ox: number; oy: number } = null;
     const th0 = THEMES[live.current.mode];
     const colors = { a: rgb(th0.accent), bg: rgb(th0.bg), l: th0.strength };
     const t0 = performance.now();
@@ -114,10 +116,17 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     };
     const runTx = (now: number) => {
       if (!tx) return;
-      const p = (now - tx.start) / tx.dur;
-      if (p >= 0.5 && !tx.swapped) {
-        tx.swapped = true; tx.swap();
-        if (tx.kind === 3) { setPhase('pre'); requestAnimationFrame(() => requestAnimationFrame(() => setPhase('idle'))); }
+      let p = (now - tx.start) / tx.dur;
+      if (p >= 0.5 && !tx.swapped) { tx.swapped = true; tx.held = now; tx.swap(); }
+      if (tx.swapped && !tx.shown) {
+        // A slow server must not uncover the old page, so stay at the midpoint until the new one lands.
+        if (!tx.landed() && now - tx.held < MAX_HOLD_MS) {
+          tx.start = now - tx.dur / 2; p = 0.5;
+          if (!tx.hidden) { tx.hidden = true; setPhase('out'); }
+        } else {
+          tx.shown = true;
+          if (tx.kind === 3 || tx.hidden) { setPhase('pre'); requestAnimationFrame(() => requestAnimationFrame(() => setPhase('idle'))); }
+        }
       }
       cam.surge = tx.kind === 3 ? Math.pow(Math.sin(Math.PI * clamp01(p)), 2) : 0;
       if (p >= 1) { tx = null; if (t) { t.gl.clearColor(0, 0, 0, 0); t.gl.clear(t.gl.COLOR_BUFFER_BIT); } return; }
@@ -234,13 +243,20 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
     api.current = {
       scene: (name) => { target = SCENES[name] ?? target; if (reduced) { Object.assign(cam, target); drawBg(); } },
       fade: setPhase,
-      run: (toMode, swap) => {
-        if (tx) return;
+      run: (toMode, swap, landed) => {
+        if (tx) {
+          if (!landed) return;
+          // A click during a transition re-aims it, so it is never lost.
+          const first = tx.swap;
+          tx.landed = landed;
+          if (tx.swapped) { swap(); tx.held = performance.now(); tx.shown = false; } else tx.swap = () => { first(); swap(); };
+          return;
+        }
         if (reduced) { swap(); return; }
         const cur = live.current, pick = TRANSITIONS[cur.look.transition]!;
         const kind = pick.kind < 0 ? BGS.find((b) => b.id === cur.look.bg)!.pair : pick.kind;
         const tr = TRANSITIONS.find((x) => x.kind === kind)!, th = THEMES[toMode];
-        tx = { kind, dur: tr.dur, start: performance.now(), swapped: false, swap, fill: rgb(th.bg), line: rgb(th.accent), ox: ptr.x / size.h, oy: 1 - ptr.y / size.h };
+        tx = { kind, dur: tr.dur, start: performance.now(), swapped: false, swap, landed: landed ?? (() => true), held: 0, shown: false, hidden: false, fill: rgb(th.bg), line: rgb(th.accent), ox: ptr.x / size.h, oy: 1 - ptr.y / size.h };
         if (kind === 3) setPhase('out');
         // rAF stops in a hidden tab, and navigation must never depend on it.
         const mine = tx;

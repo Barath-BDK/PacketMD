@@ -95,7 +95,9 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .head { position: relative; z-index: 6; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 40px; font-family: var(--font-mono), monospace; font-size: 13px; background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 -1px var(--ac) }
 .logo { width: 34px; height: 34px; margin-right: 10px; flex: none; fill: none; stroke-width: 2.6; display: inline-block; vertical-align: -6px }
 .logo-c { stroke: var(--ac) } .logo-p { stroke: var(--fg); stroke-linejoin: round; stroke-linecap: round }
-.mark { font-family: var(--font-disp), sans-serif; font-weight: 900; font-size: 34px; line-height: 1; letter-spacing: .01em }
+.mark { font-family: var(--font-mono), monospace; font-weight: 500; font-size: 27px; line-height: 1; letter-spacing: -.03em; white-space: nowrap }
+.mark .ac { font-weight: 800 }
+.mark .cur { display: inline-block; width: .5em; height: .09em; margin-left: .1em; background: var(--ac) }
 .nav { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center }
 .page { position: relative; z-index: 2; flex: 1 1 auto; min-height: 0; overflow: auto; box-sizing: border-box }
 .pad { padding: 48px 40px 96px; box-sizing: border-box; min-height: 100% }
@@ -263,7 +265,7 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .tl-prob .dat { grid-column: 1; grid-row: 2 }
   .chart-grid { grid-template-columns: 34px minmax(0, 1fr); gap: 4px }
   .axis span:nth-child(even) { display: none }
-  .mark { font-size: 28px }
+  .mark { font-size: 23px }
   .cr-btn.st.sm { padding-block: 8px !important }
   .logo { width: 28px; height: 28px; margin-right: 8px; vertical-align: -5px }
 
