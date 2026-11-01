@@ -287,4 +287,83 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .hv-wave path, .hv-fill svg, .hv .lb, .mt svg { transition: none }
   .hs-flood .hv:is(:hover, :focus-visible) .hv-fill svg { animation: none }
 }
-@media print { .head, .strip, .tabs, .cv { display: none } .cr-root { position: static; overflow: visible } .page { position: static; overflow: visible } }
+
+.tech { display: inline-block; margin-top: 4px; color: var(--small); text-decoration: underline; text-underline-offset: 3px }
+
+/* The PDF report. A document of its own: white paper, no site chrome, nothing from the screen layout. */
+.print-doc { display: none }
+@page {
+  size: A4; margin: 18mm 16mm 19mm;
+  @top-left { content: 'PacketMD network incident report'; font: 8pt 'Hanken Grotesk', Arial, sans-serif; color: #6B6F76 }
+  @bottom-left { content: 'packetmd.vercel.app'; font: 8pt 'Hanken Grotesk', Arial, sans-serif; color: #6B6F76 }
+  @bottom-right { content: 'Page ' counter(page) ' of ' counter(pages); font: 8pt 'Hanken Grotesk', Arial, sans-serif; color: #6B6F76 }
+}
+@page :first { @top-left { content: none } }
+@media print {
+  html, body { height: auto; overflow: visible; background: #fff; color: #16181C }
+  .cr-root { display: none !important }
+  .print-doc { display: block; font: 400 10pt/1.5 var(--font-sans), 'Hanken Grotesk', Arial, sans-serif; color: #16181C; -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  .print-doc p, .print-doc li, .print-doc td, .print-doc dd, .print-doc figcaption { overflow-wrap: anywhere }
+  .print-doc p { margin: 0 0 6pt }
+  .pr-top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8pt; border-bottom: 1.5pt solid #16181C }
+  .pr-brand { display: flex; align-items: center; gap: 7pt; font: 500 17pt/1 var(--font-mono), monospace; letter-spacing: -.03em }
+  .pr-brand svg { width: 22pt; height: 22pt }
+  .pr-brand b { color: #C8102E; font-weight: 800 }
+  .pr-brand i { display: inline-block; width: .5em; height: .09em; margin-left: .1em; background: #C8102E }
+  .pr-kind { text-align: right; font-size: 8.5pt; color: #55595F }
+  .pr-kind p { margin: 0 }
+  .pr-kind p:first-child { font-weight: 600; color: #16181C }
+  .print-doc h1 { margin: 18pt 0 12pt; font: 900 27pt/1.05 var(--font-disp), 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: .005em; break-after: avoid }
+  .print-doc h1 span { color: #C8102E }
+  .pr-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 5pt 18pt; margin: 0 0 14pt; padding: 8pt 0; border-top: .5pt solid #C9CCD1; border-bottom: .5pt solid #C9CCD1 }
+  .pr-facts div { display: flex; gap: 8pt; min-width: 0 }
+  .pr-facts .wide { grid-column: 1 / -1 }
+  .pr-facts dt { flex: none; width: 46pt; font-size: 8.5pt; color: #55595F }
+  .pr-facts dd { margin: 0; min-width: 0; font: 400 8.5pt/1.4 var(--font-mono), monospace; overflow-wrap: anywhere }
+  .print-doc figure { margin: 0 0 14pt }
+  .pr-chart { display: block; width: 100%; height: 56pt; border-bottom: .75pt solid #16181C }
+  .print-doc figcaption { margin-top: 3pt; font-size: 8pt; color: #55595F }
+  .pr-sec { margin: 16pt 0 6pt; font: 800 14pt/1.1 var(--font-disp), 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: .02em; break-after: avoid }
+  .pr-table { width: 100%; border-collapse: collapse; font-size: 9pt }
+  .pr-table th { padding: 3pt 8pt 3pt 0; text-align: left; font-size: 8pt; font-weight: 600; color: #55595F; border-bottom: .75pt solid #16181C }
+  .pr-table td { padding: 4pt 8pt 4pt 0; vertical-align: top; border-bottom: .5pt solid #E1E3E6 }
+  .pr-table tr { break-inside: avoid }
+  .pr-tag { display: inline; margin: 0; font: 800 8pt/1.2 var(--font-mono), monospace; letter-spacing: .03em; text-transform: uppercase; color: #55595F }
+  .pr-ATTACK { color: #C8102E }
+  .pr-FAULT { color: #16181C }
+  .pr-INCONCLUSIVE { color: #9A5B00 }
+  .pr-first { margin: 0; padding-left: 15pt }
+  .pr-first li { margin-bottom: 4pt; break-inside: avoid }
+  .print-doc ol { list-style: decimal }
+  .print-doc ul { list-style: disc }
+  .print-doc li::marker { color: #55595F }
+  .pr-finding { break-before: page }
+  .pr-finding + .pr-finding { break-before: auto; margin-top: 26pt }
+  .pr-fhead { padding-bottom: 7pt; margin-bottom: 9pt; border-bottom: 1.5pt solid #16181C; break-after: avoid }
+  .pr-fhead .pr-tag { display: block; margin-bottom: 3pt }
+  .pr-fhead h2 { margin: 0 0 4pt; font: 900 20pt/1.08 var(--font-disp), 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: .005em }
+  .print-doc .pr-meta { margin: 0; font-size: 8.5pt; color: #55595F }
+  .print-doc .pr-lead { font-size: 11.5pt; line-height: 1.45; margin-bottom: 9pt }
+  .print-doc .pr-note { font-size: 8.5pt; color: #55595F }
+  .print-doc h3 { margin: 10pt 0 2.5pt; font: 600 9.5pt/1.3 var(--font-sans), Arial, sans-serif; color: #16181C; break-after: avoid }
+  .print-doc ul { margin: 0 0 6pt; padding-left: 13pt }
+  .print-doc ul li { margin-bottom: 2pt }
+  .pr-proof { font-size: 8pt; table-layout: fixed }
+  .pr-proof th:nth-child(1), .pr-proof td:nth-child(1) { width: 32pt }
+  .pr-proof th:nth-child(2), .pr-proof td:nth-child(2) { width: 50pt }
+  .pr-proof th:nth-child(3), .pr-proof td:nth-child(3) { width: 40pt }
+  .pr-proof td { font-family: var(--font-mono), monospace; padding-top: 2.5pt; padding-bottom: 2.5pt }
+  .pr-fix ol { margin: 0; padding-left: 15pt }
+  .pr-fix li { margin-bottom: 7pt; break-inside: avoid }
+  .print-doc .pr-step { margin: 0; font-weight: 600 }
+  .print-doc .pr-why { margin: 0 0 3pt; color: #55595F }
+  .pr-cmd { display: flex; gap: 6pt; margin-top: 2.5pt; padding: 3pt 6pt; background: #F2F3F5; border-left: 1.5pt solid #C9CCD1 }
+  .pr-cmd span { flex: none; width: 34pt; font-size: 7.5pt; color: #55595F; line-height: 1.5 }
+  .pr-cmd code { min-width: 0; font: 400 7.5pt/1.5 var(--font-mono), monospace; white-space: pre-wrap; overflow-wrap: anywhere }
+  .print-doc .pr-check { margin-top: 6pt; padding-top: 6pt; border-top: .5pt solid #C9CCD1; break-inside: avoid }
+  .pr-end { break-before: avoid; margin-top: 20pt; padding-top: 2pt; border-top: 1.5pt solid #16181C; break-inside: avoid; font-size: 9pt; color: #3B3F45 }
+  .pr-key { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3pt 18pt; margin: 0 0 8pt }
+  .pr-key div { display: flex; gap: 6pt }
+  .pr-key dt { flex: none; width: 52pt; font-weight: 600; color: #16181C }
+  .pr-key dd { margin: 0 }
+}

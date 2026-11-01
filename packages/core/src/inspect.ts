@@ -1,3 +1,4 @@
+import { techniqueOf } from './explain/mitre';
 import { BUDGET } from './thresholds';
 import { decode } from './decode/decode';
 import { neutralize } from './sanitize';
@@ -34,7 +35,8 @@ export function locator(e: Evidence, field?: { start: number; len: number; label
 export function toMarkdown(r: Report) {
   const lines = [`# PacketMD report`, ``, `File SHA-256: ${r.defense.sha256}`, ``, neutralize(r.headline), ``];
   for (const f of r.findings) {
-    lines.push(`## ${f.id} ${neutralize(f.title)} (${f.lane}, ${f.confidence})`, '', neutralize(f.plain), '', `Cause: ${neutralize(f.cause)}`, '', `Evidence packets: ${f.evidence.map((e) => e.no).slice(0, 20).join(', ')}`, '');
+    const tech = techniqueOf(f.hypothesis);
+    lines.push(`## ${f.id} ${neutralize(f.title)} (${f.lane}, ${f.confidence})`, '', ...(tech ? [`MITRE ATT&CK: ${tech.id} ${tech.name}`, ''] : []), neutralize(f.plain), '', `Cause: ${neutralize(f.cause)}`, '', `Evidence packets: ${f.evidence.map((e) => e.no).slice(0, 20).join(', ')}`, '');
     f.fixSteps.forEach((s, i) => lines.push(`${i + 1}. ${neutralize(s.title)}`));
     lines.push('');
   }

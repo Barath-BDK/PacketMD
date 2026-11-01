@@ -14,3 +14,4 @@ export { isDisposableEmail } from './disposable';
 export { checkPassword, passwordOk, PASSWORD_MAX, PASSWORD_MIN } from './password';
 export type { PasswordRule } from './password';
 export { TEMPLATES } from './explain/templates';
+export { techniqueOf, mapped, type Technique } from './explain/mitre';

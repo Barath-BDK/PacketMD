@@ -1,7 +1,7 @@
 import { fullPayload, payload, pseudonymize } from '../apps/web/src/lib/payload';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyze, BUDGET, TEMPLATES, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
+import { analyze, BUDGET, HYPOTHESES, TEMPLATES, mapped, techniqueOf, toMarkdown, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
 import { createHash } from 'node:crypto';
 import { fileSource } from '../packages/cli/src/source';
 
@@ -203,5 +203,21 @@ describe('audit fixes', () => {
     const t = performance.now();
     pseudonymize({ d: Array.from({ length: 300 }, () => `a:b:${'a'.repeat(240)}g`) });
     expect(performance.now() - t).toBeLessThan(500);
+  });
+});
+
+describe('MITRE ATT&CK labels', () => {
+  it('every attack has a decision, and every id is well formed', () => {
+    for (const [id, h] of Object.entries(HYPOTHESES)) {
+      if (h.family !== 'attack') { expect(techniqueOf(id), id).toBeNull(); continue; }
+      expect(mapped(id), id).toBe(true);
+      const t = techniqueOf(id);
+      if (t) { expect(t.id, id).toMatch(/^T\d{4}(\.\d{3})?$/); expect(t.url).toBe(`https://attack.mitre.org/techniques/${t.id.replace('.', '/')}/`); }
+    }
+  });
+  it('appears in the Markdown export', async () => {
+    const s = fileSource('samples/arp-spoof.pcap'), r = await analyze(s, 'arp-spoof.pcap');
+    s.close();
+    expect(toMarkdown(r)).toContain('MITRE ATT&CK: T1557.002 ARP Cache Poisoning');
   });
 });

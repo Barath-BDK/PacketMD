@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { diffReports, type Report } from '@packetmd/core';
+import { diffReports, techniqueOf, type Report } from '@packetmd/core';
 import { runFile, useCase } from '@/lib/engine';
 import { hasBackend, saveReport, shareReport } from '@/lib/backend';
 import { Hv, Scan, useShell } from '@/shell/Shell';
@@ -8,6 +8,7 @@ import { Copy, Differential, exportJson, exportMd, FindingCard, FixPlan, Lane, L
 import { StoryPlayer } from '@/report/Story';
 import { Investigator } from '@/report/Investigator';
 import { TimeChart } from '@/report/TimeChart';
+import { PrintReport } from '@/report/PrintReport';
 
 const TABS: [string, string][] = [['verdict', 'Verdict'], ['findings', 'Findings'], ['differential', 'Differential'], ['story', 'Story'], ['fix', 'Fix plan'], ['verify', 'Verify fix'], ['timeline', 'Timeline'], ['hosts', 'Hosts'], ['activity', 'Activity'], ['investigator', 'Investigator']];
 const LANES = ['ATTACK', 'FAULT', 'INCONCLUSIVE', 'BENIGN'] as const;
@@ -31,7 +32,7 @@ function Verdict({ r }: { r: Report }) {
               <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 15, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{c.level === 'analyst' ? f.technical : f.levels[c.level].what}</span>
               {c.level === 'analyst' && f.levels.analyst.fields && <span className="dat" style={{ display: 'block', marginTop: 4, overflowWrap: 'anywhere' }}>{f.levels.analyst.fields}</span>}
             </span>
-            <span className="sm">{f.confidence} confidence</span>
+            <span className="sm">{f.confidence} confidence{techniqueOf(f.hypothesis) && <span style={{ display: 'block', marginTop: 4 }}>{techniqueOf(f.hypothesis)!.id}</span>}</span>
           </button>
         )))}
       </div>
@@ -39,7 +40,7 @@ function Verdict({ r }: { r: Report }) {
         <div><h3>Download</h3><div className="acts">
           <button type="button" className="btn" onClick={() => exportMd(r)}>Markdown</button>
           <button type="button" className="btn" onClick={() => exportJson(r)}>JSON</button>
-          <button type="button" className="btn" onClick={() => window.print()}>Print to PDF</button>
+          <button type="button" className="btn" onClick={() => window.print()}>PDF report</button>
         </div></div>
         {!c.archived && <div><h3>Keep</h3><div className="acts">
           <button type="button" className="btn" aria-pressed={!!c.baseline} onClick={() => c.setBaseline(c.baseline ? null : r.baseline)}>{c.baseline ? 'Baseline saved' : 'Save as known-good baseline'}</button>
@@ -156,6 +157,7 @@ export default function ReportPage() {
   const head = first!.replace(/\.$/, '');
   return (
     <div className="pad" style={{ paddingTop: 36 }}>
+      <PrintReport r={r} archived={!!c.archived} />
       <p className="sm" style={{ margin: '0 0 6px' }}>{r.defense.fileName}, SHA-256 {r.defense.sha256.slice(0, 16)}...</p>
       {c.archived && <p className="archived"><span>Saved investigation from {new Date(c.archived).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. Packets are never stored, so open the original capture to inspect them.</span><Hv onClick={() => go('/investigations')}>Back to my investigations</Hv></p>}
       <h1 className="disp report-title rise d1">{head}. {rest.length > 0 && <span className="ac">{rest.join('. ')}</span>}</h1>

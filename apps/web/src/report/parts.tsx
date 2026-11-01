@@ -1,6 +1,6 @@
 'use client';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { locator, neutralize, toMarkdown, type Evidence, type Finding, type Report } from '@packetmd/core';
+import { locator, neutralize, techniqueOf, toMarkdown, type Evidence, type Finding, type Report } from '@packetmd/core';
 import { useCase } from '@/lib/engine';
 import { hasBackend, sendFeedback } from '@/lib/backend';
 
@@ -61,6 +61,11 @@ function Feedback({ type }: { type: string }) {
   );
 }
 
+export function Technique({ id }: { id: string }) {
+  const t = techniqueOf(id);
+  return t ? <a className="sm tech" href={t.url} target="_blank" rel="noopener noreferrer">MITRE ATT&amp;CK {t.id}: {t.name}</a> : null;
+}
+
 export function FindingCard({ f, r }: { f: Finding; r: Report }) {
   const c = useCase(), t = f.levels[c.level], h = HEAD[c.level];
   const causes = (f.causedBy ?? []).map((id) => r.findings.find((x) => x.id === id)?.title).filter(Boolean);
@@ -72,6 +77,7 @@ export function FindingCard({ f, r }: { f: Finding; r: Report }) {
         <h3 className="disp h3">{f.title}</h3>
         <span><Lane l={f.lane} /> <span className="sm" style={{ marginLeft: 10 }}>{f.confidence} confidence</span></span>
       </div>
+      <Technique id={f.hypothesis} />
       <p style={{ fontSize: 17, lineHeight: 1.55, maxWidth: '82ch', overflowWrap: 'anywhere' }}>{t.what}</p>
       {t.fields && <p className="dat" style={{ overflowWrap: 'anywhere' }}><span className="sm">Raw fields: </span>{t.fields}</p>}
       <p style={{ margin: '6px 0' }}><Proof nos={f.evidence.map((e) => e.no)} /></p>
@@ -175,5 +181,5 @@ export function download(name: string, body: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 export const exportMd = (r: Report) => download('packetmd-report.md', toMarkdown(r), 'text/markdown');
-export const exportJson = (r: Report) => { const { rows: _x, ...rest } = r; download('packetmd-report.json', JSON.stringify(rest, null, 2), 'application/json'); };
+export const exportJson = (r: Report) => { const { rows: _x, findings, ...rest } = r; download('packetmd-report.json', JSON.stringify({ ...rest, findings: findings.map((f) => ({ ...f, attack: techniqueOf(f.hypothesis) })) }, null, 2), 'application/json'); };
 export const cell = neutralize;
