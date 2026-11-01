@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { User } from '@supabase/supabase-js';
-import { checkPassword, passwordOk } from '@packetmd/core';
-import { hasBackend, roleOf, savedReports, sb } from '@/lib/backend';
+import { checkPassword, isDisposableEmail, passwordOk } from '@packetmd/core';
+import { hasBackend, roleOf, sb } from '@/lib/backend';
 import { Hv, Scan, useShell } from '@/shell/Shell';
 
 function Password({ label, value, onChange, auto, placeholder, describedBy }: { label: string; value: string; onChange(v: string): void; auto: string; placeholder?: string; describedBy?: string }) {
@@ -52,9 +52,8 @@ export default function SignIn() {
   const [mode, setMode] = useState<'login' | 'create'>('login');
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null), [role, setRole] = useState<string | null>(null);
-  const [saved, setSaved] = useState<Awaited<ReturnType<typeof savedReports>>>([]);
   const creating = mode === 'create';
-  useEffect(() => { if (user) void savedReports().then(setSaved); }, [user]);
+  const tempMail = creating && isDisposableEmail(email);
 
   useEffect(() => { sb?.auth.getUser().then(async ({ data }) => { setUser(data.user); setRole(await roleOf(data.user)); }); }, []);
   const card = useRef<HTMLDivElement>(null), body = useRef<HTMLFormElement>(null);
@@ -68,7 +67,7 @@ export default function SignIn() {
     el.animate([{ height: `${from}px`, width: `${fromW}px` }, { height: `${to}px`, width: `${toW}px` }], { duration: 340, easing: ease }).onfinish = () => { el.style.overflow = ''; };
     body.current?.animate([{ opacity: 0, transform: `translateX(${dx}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
   };
-  const ready = !creating || (passwordOk(pw, email) && pw === pw2);
+  const ready = !creating || (!tempMail && passwordOk(pw, email) && pw === pw2);
   const submit = async () => {
     if (!sb) return;
     if (!ready) { setMsg('Finish the checklist first.'); return; }
@@ -89,7 +88,8 @@ export default function SignIn() {
           <h1 className="disp h2" style={{ margin: 0 }}>{creating ? 'Create an account' : 'Log in'}</h1>
           <div className={creating ? 'auth-grid' : ''}>
           <div className="auth-fields">
-          <label className="sm">Email<input className="cr-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <label className="sm">Email<input className="cr-input" type="email" required autoComplete="email" aria-invalid={tempMail} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          {creating && <p role={tempMail ? 'alert' : undefined} className={tempMail ? 'ac' : 'muted'} style={{ margin: '-6px 0 0', fontSize: 14, lineHeight: 1.4 }}>{tempMail ? "We don't accept temporary email addresses. Please use your real email." : "We don't accept temporary email addresses."}</p>}
           <Password label="Password" value={pw} onChange={setPw} auto={creating ? 'new-password' : 'current-password'} placeholder={creating ? 'At least 12 characters' : undefined} describedBy={creating ? 'pw-rules' : undefined} />
           {creating && <Password label="Confirm password" value={pw2} onChange={setPw2} auto="new-password" />}
           </div>
@@ -105,7 +105,7 @@ export default function SignIn() {
           <h1 className="disp h2" style={{ margin: 0 }}>Welcome back</h1>
           <p style={{ margin: 0 }}>Signed in as <strong>{role === 'admin' ? 'Admin' : 'Analyst'}</strong>.</p>
           {role === 'admin' && <Scan onClick={() => go('/admin')}>Open admin</Scan>}
-          {saved.length > 0 && <div><p className="sm" style={{ margin: '0 0 6px' }}>Your saved reports</p>{saved.map((x) => <p key={x.id} style={{ margin: '0 0 8px', fontSize: 14, lineHeight: 1.4 }}>{x.summary.headline} <span className="sm">{new Date(x.created_at).toLocaleDateString()}</span></p>)}</div>}
+          <Scan onClick={() => go('/investigations')}>My investigations</Scan>
           <Hv onClick={() => sb?.auth.signOut().then(() => { setUser(null); setRole(null); })}>Log out</Hv>
         </>}
         {msg && <p role="status" className="ac" style={{ margin: 0 }}>{msg}</p>}

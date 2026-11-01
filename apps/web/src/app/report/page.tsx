@@ -43,7 +43,7 @@ function Verdict({ r }: { r: Report }) {
         </div></div>
         <div><h3>Keep</h3><div className="acts">
           <button type="button" className="btn" aria-pressed={!!c.baseline} onClick={() => c.setBaseline(c.baseline ? null : r.baseline)}>{c.baseline ? 'Baseline saved' : 'Save as known-good baseline'}</button>
-          {hasBackend && <button type="button" className="btn" onClick={() => saveReport(r).then(setShare)}>Save to account</button>}
+          {hasBackend && <button type="button" className="btn" onClick={() => saveReport(r).then(setShare)}>Save to my investigations</button>}
         </div></div>
         {hasBackend && <div><h3>Share</h3><div className="acts">
           <button type="button" className="btn" onClick={() => shareReport(r).then((t) => setShare(`${location.origin}/share?t=${t}`), (e) => setShare((e as Error).message))}>Create share link</button>

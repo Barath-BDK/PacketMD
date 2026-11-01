@@ -138,6 +138,9 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .lane-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 14px 16px; background: var(--veil); border: 0; border-left: 3px solid var(--bar); color: inherit; font: inherit; text-align: left }
 .lane-row:hover { background: var(--scan) }
 .lane-row.ATTACK { border-left-color: var(--ac) } .lane-row.FAULT { border-left-color: var(--fg) } .lane-row.INCONCLUSIVE { border-left-color: var(--tint) }
+.inv-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 170px; gap: 20px; align-items: center; width: 100%; padding: 14px 16px; background: none; border: 0; color: inherit; font: inherit; text-align: left }
+.inv-row:hover, .inv-row.on { background: var(--scan) }
+.inv-row.on { box-shadow: inset 3px 0 0 var(--ac) }
 .export { display: flex; flex-wrap: wrap; gap: 20px 56px; padding: 20px 24px; background: var(--veil); margin-top: 24px }
 .export h3 { margin: 0 0 10px; font-size: 16px; font-weight: 600 }
 .export .acts { display: flex; flex-wrap: wrap; gap: 8px 12px; font-family: var(--font-sans), sans-serif; font-size: 15px }
@@ -221,7 +224,7 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 @media (max-width: 860px) {
   .grid-2, .grid-side, .story, .pk-detail, .auth-grid { grid-template-columns: minmax(0, 1fr) }
   .story { height: auto } .story-g { height: 260px; flex: none } .story-r { overflow: visible }
-  .lane-row { grid-template-columns: minmax(0, 1fr); gap: 6px }
+  .lane-row, .inv-row { grid-template-columns: minmax(0, 1fr); gap: 6px }
   .inv-top { grid-template-columns: minmax(0, 1fr) }
   .tabbar { flex-direction: column; align-items: stretch; padding: 4px 0 }
   .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: none }

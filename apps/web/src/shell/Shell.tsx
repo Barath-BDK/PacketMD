@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Lenis from 'lenis';
+import { sb } from '@/lib/backend';
 import { BGS, DIMS, Stage, TRANSITIONS, type Look, type StageApi } from './Stage';
 
 const VERSIONS = ['Original', 'Clearing', 'Tideline', 'Pools', 'Halo'];
@@ -45,6 +46,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(), router = useRouter();
   const root = useRef<HTMLDivElement>(null), api = useRef<StageApi | null>(null), scroller = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+  // Reads the local session only, so guests make no network request.
+  useEffect(() => {
+    const auth = sb?.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
+    return () => auth?.data.subscription.unsubscribe();
+  }, []);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
   const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });
   const [showLook, setShowLook] = useState(false);
@@ -94,7 +101,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({ go, jump }), [go, jump]);
   const page = sceneOf(path);
   const fx = phase === 'idle' ? { opacity: 1 } : phase === 'out' ? { opacity: 0, transform: 'scale(1.1)', filter: 'blur(4px)' } : { opacity: 0, transform: 'scale(.92)', filter: 'blur(4px)', transition: 'none' };
-  const nav: [string, string][] = [['/', 'Overview'], ['/report', 'Report'], ['/security', 'Security'], ['/methodology', 'Methodology'], ['/signin', 'Log in']];
+  const nav: [string, string][] = [['/', 'Overview'], ['/report', 'Report'], ['/security', 'Security'], ['/methodology', 'Methodology'], ...(signedIn ? [['/investigations', 'Investigations'] as [string, string]] : []), ['/signin', signedIn ? 'Account' : 'Log in']];
 
   return (
     <Ctx.Provider value={value}>

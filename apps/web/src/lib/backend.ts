@@ -13,8 +13,10 @@ export async function saveReport(r: Report) {
   if (!sb) return 'Backend not configured.';
   const { data } = await sb.auth.getUser();
   if (!data.user) return 'Sign in first. Guest reports stay in this tab.';
-  const { error } = await sb.from('reports').insert({ owner: data.user.id, ...payload(r) });
-  return error ? 'Could not save this report.' : 'Saved to your account.';
+  const { data: dup } = await sb.from('reports').select('id').eq('owner', data.user.id).eq('file_sha256', r.defense.sha256).limit(1);
+  if (dup?.length) return 'This capture is already in your investigations.';
+  const { error } = await sb.from('reports').insert({ owner: data.user.id, file_name: r.defense.fileName, ...payload(r) });
+  return error ? 'Could not save this report.' : 'Saved to your investigations.';
 }
 
 export async function sendFeedback(findingType: string, verdict: 'correct' | 'false-positive') {
@@ -25,9 +27,24 @@ export async function sendFeedback(findingType: string, verdict: 'correct' | 'fa
   return error ? 'Could not send that.' : 'Thanks, noted.';
 }
 
-export async function savedReports() {
-  const { data } = (await sb?.from('reports').select('id, created_at, summary').order('created_at', { ascending: false }).limit(10)) ?? {};
-  return (data ?? []) as { id: string; created_at: string; summary: { headline: string; packets: number } }[];
+export interface SavedFinding { id: string; lane: string; title: string; confidence: string; plain: string; cause: string; whyNotTheOther: string; verifyBy: string; fixTitles: string[]; proofPackets: number[] }
+export interface SavedReport { id: string; created_at: string; file_name: string | null; file_sha256: string; summary: { headline: string; packets: number }; findings: SavedFinding[] }
+
+/** Only the caller's own rows: admins can read every report under RLS, so the filter must be explicit. Null means the read failed. */
+export async function savedReports(): Promise<SavedReport[] | null> {
+  if (!sb) return null;
+  const { data: me } = await sb.auth.getUser();
+  if (!me.user) return null;
+  const { data, error } = await sb.from('reports').select('id, created_at, file_name, file_sha256, summary, findings').eq('owner', me.user.id).order('created_at', { ascending: false }).limit(100);
+  return error ? null : (data as SavedReport[]);
+}
+
+export async function deleteReport(id: string) {
+  if (!sb) return false;
+  const { data: me } = await sb.auth.getUser();
+  if (!me.user) return false;
+  const { error } = await sb.from('reports').delete().eq('id', id).eq('owner', me.user.id);
+  return !error;
 }
 
 export async function shareReport(r: Report) {

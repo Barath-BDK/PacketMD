@@ -1,7 +1,7 @@
 import { pseudonymize } from '../apps/web/src/lib/payload';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyze, BUDGET, checkPassword, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
+import { analyze, BUDGET, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
 import { createHash } from 'node:crypto';
 import { fileSource } from '../packages/cli/src/source';
 
@@ -81,6 +81,15 @@ describe('own hashes', () => {
     expect(h.digest()).toBe(createHash('sha256').update(b).digest('hex'));
   });
   it('md5 matches node crypto', () => expect(md5('771,4865-4866,0-23,29-23,0')).toBe(createHash('md5').update('771,4865-4866,0-23,29-23,0').digest('hex')));
+});
+
+describe('temporary email block', () => {
+  it('refuses throwaway services, including subdomains and new variants', () => {
+    for (const e of ['a@mailinator.com', 'A@MAILINATOR.COM', 'a@sub.mailinator.com', 'a@yopmail.fr', 'a@guerrillamail.net', 'a@10minutemail.co', 'a@temp-mail.org', 'a@sharklasers.com', 'a@mail.tm']) expect(isDisposableEmail(e), e).toBe(true);
+  });
+  it('allows normal addresses', () => {
+    for (const e of ['cs23i1005@iiitdm.ac.in', 'a@gmail.com', 'a@outlook.com', 'a@protonmail.com', 'a@hotmail.tm.example', '']) expect(isDisposableEmail(e), e).toBe(false);
+  });
 });
 
 describe('password rules', () => {
