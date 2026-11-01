@@ -60,6 +60,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (/error_code=/.test(arrival)) router.replace('/signin?link=expired');
     else if (/type=(signup|email)/.test(arrival)) router.replace('/signin?welcome=1');
+    else if (/access_token=/.test(arrival)) history.replaceState(null, '', location.pathname + location.search);
   }, [router]);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
   const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });

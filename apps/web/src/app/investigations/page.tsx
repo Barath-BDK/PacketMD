@@ -82,7 +82,7 @@ export default function Investigations() {
   return (
     <div className="pad">
       <h1 className="disp h2 rise d1">Your investigations</h1>
-      <p className="muted rise d2" style={{ maxWidth: '62ch', lineHeight: 1.5 }}>{list.length} saved. These hold findings only, never packets, and addresses are replaced with labels such as host-3.</p>
+      <p className="muted rise d2" style={{ maxWidth: '62ch', lineHeight: 1.5 }}>{list.length} saved. These hold the full report, including domains, hostnames, URL paths and the file name. Packets are never stored, and IP and MAC addresses are replaced with labels such as host-3.</p>
       <div className="inv-list">
         {list.map((r) => {
           const on = open === r.id;

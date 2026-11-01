@@ -12,7 +12,7 @@ export function safeText(s: string, max: number = BUDGET.maxString): string {
 /** Cell and line prefixes that spreadsheets and Markdown treat as live content. */
 export function neutralize(s: string): string {
   const t = /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
-  return t.replace(/[|`<>[\]]/g, (c) => '\\' + c);
+  return t.replace(/[\\|`<>[\]]/g, (c) => '\\' + c);
 }
 
 /** Filenames arrive from the OS and are as untrusted as packets. */
@@ -23,5 +23,6 @@ export function safeName(name: string): string {
 
 export function shellArg(s: string): string | null {
   // Fix commands only ever carry IPs, MACs, ports or DNS names. Anything else is dropped.
-  return /^[A-Za-z0-9.:_-]{1,253}$/.test(s) ? s : null;
+  // A leading dash would be read as an option by the command, so it never starts a value.
+  return /^[A-Za-z0-9.:_][A-Za-z0-9.:_-]{0,252}$/.test(s) ? s : null;
 }

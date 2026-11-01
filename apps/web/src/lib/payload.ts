@@ -1,14 +1,22 @@
 import type { Report } from '@packetmd/core';
 
-/** Replaces every IP and MAC with a stable label before anything leaves the browser. */
+/** Replaces every IP and MAC with a stable label before anything leaves the browser. Names such as domains stay, and the UI says so. */
+const isIpv6 = (m: string) => {
+  // Times such as 10:30:05 and MACs share the alphabet, so only a real address shape counts.
+  if (m.length > 39 || /^\d{1,2}(:\d{2}){1,2}$/.test(m) || /^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(m)) return false;
+  const parts = m.split(':'), gap = m.indexOf('::');
+  if (/^:[^:]|[^:]:$/.test(m) || gap !== m.lastIndexOf('::') || parts.length > 9 || parts.some((p) => p.length > 4)) return false;
+  return gap < 0 ? parts.length === 8 : parts.length >= 3;
+};
+
 export function pseudonymize<T>(value: T): T {
   const seen = new Map<string, string>();
   const swap = (kind: string) => (m: string) => { if (!seen.has(m)) seen.set(m, `${kind}-${seen.size + 1}`); return seen.get(m)!; };
   const text = JSON.stringify(value)
-    .replace(/\b(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\b/gi, swap('mac'))
-    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, swap('host'))
-    // IPv6 needs at least two colons, so times like 10:30 are left alone.
-    .replace(/(?<![\w:])(?:[0-9a-f]{1,4}:){2,7}(?::?[0-9a-f]{1,4})+(?![\w:])|(?<![\w:])(?:[0-9a-f]{1,4}:)+:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4})*)?(?![\w:])/gi, (m) => (/^\d{1,2}(:\d{2}){1,2}$/.test(m) ? m : swap('host')(m)));
+    // One flat character run, because a nested IPv6 pattern can hang on a crafted name.
+    .replace(/(?<![\w:])[0-9a-f:]{2,}(?![\w:])/gi, (m) => (isIpv6(m) ? swap('host')(m) : m))
+    .replace(/\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b/gi, (m) => swap('mac')(m.replace(/-/g, ':').toLowerCase()))
+    .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, swap('host'));
   return JSON.parse(text) as T;
 }
 
@@ -22,9 +30,11 @@ export function payload(r: Report) {
   const full = fullPayload(r);
   // Stays inside the share function's limits, so a capture with long values cannot make sharing fail.
   const cut = (x: string, n: number) => x.slice(0, n);
-  const findings = full.findings.slice(0, 100).map((f) => ({
+  const findings = full.findings.slice(0, 30).map((f) => ({
     id: f.id, lane: f.lane, hypothesis: f.hypothesis, title: cut(f.title, 160), confidence: f.confidence, plain: cut(f.plain, 1000), cause: cut(f.cause, 1000),
     whyNotTheOther: cut(f.whyNotTheOther, 1000), analogy: cut(f.analogy, 400), verifyBy: cut(f.verifyBy, 400), fixTitles: f.fixSteps.slice(0, 12).map((x) => cut(x.title, 200)), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
   }));
+  // Most serious first, so the share function's size limit only ever costs the least important findings.
+  while (findings.length > 1 && new TextEncoder().encode(JSON.stringify(findings)).length > 60_000) findings.pop();
   return { file_sha256: r.defense.sha256, summary: pseudonymize({ headline: cut(r.headline, 300), packets: r.defense.packets, schema: r.schema }), findings };
 }

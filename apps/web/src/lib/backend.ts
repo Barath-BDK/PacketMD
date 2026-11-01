@@ -6,10 +6,11 @@ export { payload };
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const hasBackend = !!(url && anon);
-// Read before the client below clears the address bar after an email link.
+// Email links report their result in the address, and this is the only thing read from it.
 export const arrival = typeof location === 'undefined' ? '' : location.hash;
 // Guest mode has no client at all: without these values no request can reach a backend.
-export const sb: SupabaseClient | null = hasBackend ? createClient(url!, anon!) : null;
+// Sessions never come from the URL: a link carrying someone else's tokens would silently swap the visitor's account.
+export const sb: SupabaseClient | null = hasBackend ? createClient(url!, anon!, { auth: { detectSessionInUrl: false } }) : null;
 
 export async function saveReport(r: Report) {
   if (!sb) return 'Backend not configured.';
@@ -19,7 +20,9 @@ export async function saveReport(r: Report) {
   await sb.from('reports').delete().eq('owner', data.user.id).eq('file_sha256', r.defense.sha256).is('full_report', null);
   const { data: dup } = await sb.from('reports').select('id').eq('owner', data.user.id).eq('file_sha256', r.defense.sha256).limit(1);
   if (dup?.length) return 'This capture is already in your investigations.';
-  const { error } = await sb.from('reports').insert({ owner: data.user.id, file_name: r.defense.fileName, full_report: fullPayload(r), ...payload(r) });
+  const full = fullPayload(r);
+  const { error } = await sb.from('reports').insert({ owner: data.user.id, file_name: full.defense.fileName, full_report: full, ...payload(r) });
+  if (error?.message.includes('limit')) return 'You have reached your saved investigation limit. Delete some and try again.';
   return error ? 'Could not save this report.' : 'Saved to your investigations.';
 }
 

@@ -13,8 +13,11 @@ export interface Tpl {
 }
 
 /** A step survives only if every value it needs came from the capture and is safe in a shell line. */
+// Names inside a quoted Wireshark filter keep their meaning whatever the capture put in them.
+const quoted = (v: unknown) => s(v).replace(/["\\]/g, '\\$&');
+
 function step(need: unknown[], make: () => FixStep): FixStep[] {
-  return need.every((v) => { const x = s(v); return x !== '' && x !== '0' && shellArg(x.replace(/, /g, ',').split(',')[0]!) !== null; }) ? [make()] : [];
+  return need.every((v) => { const x = s(v); return x !== '' && x !== '0' && x.split(/, ?/).every((p) => shellArg(p) !== null); }) ? [make()] : [];
 }
 
 const arpWatch = (f: F): FixStep[] => step([f.ip, f.macA], () => ({
@@ -90,7 +93,7 @@ export const TEMPLATES: Record<string, Tpl> = {
     cause: (f) => `${f.forger ? `${f.forger} is racing` : 'Something on the path is racing'} the real resolver, or the resolver itself was tampered with.`,
     whyNot: () => 'A failing DNS server gives errors or silence. This one gives confident, wrong, or conflicting answers, which a fault cannot produce.',
     analogy: 'Someone slipped a forged page into the phone book, so you dial the wrong number with total confidence.',
-    filter: (f) => `dns.qry.name == "${f.qname}"`, bpf: () => 'udp port 53',
+    filter: (f) => `dns.qry.name == "${quoted(f.qname)}"`, bpf: () => 'udp port 53',
     fix: (f) => [
       ...step([f.forged], () => ({ title: `Block ${f.forged} at the firewall`, why: 'Stops clients reaching the fake destination.', router: `access-list 110 deny ip any host ${f.forged}\naccess-list 110 permit ip any any`, linux: `sudo iptables -I FORWARD -d ${f.forged} -j DROP` })),
       ...step([f.victim], () => ({ title: `Flush the DNS cache on ${f.victim}`, why: 'Forged answers stay cached until their timer runs out.', windows: 'ipconfig /flushdns', linux: 'sudo resolvectl flush-caches' })),
@@ -258,7 +261,7 @@ export const TEMPLATES: Record<string, Tpl> = {
     cause: () => 'A tunnelling tool or malware is using DNS as a covert channel.',
     whyNot: () => 'Normal names are short and readable. These are long and random-looking with no benign pattern.',
     analogy: 'Passing secret notes hidden inside ordinary-looking address labels.',
-    filter: (f) => `dns.qry.name contains "${f.domain}"`, bpf: () => 'udp port 53',
+    filter: (f) => `dns.qry.name contains "${quoted(f.domain)}"`, bpf: () => 'udp port 53',
     fix: (f) => [
       ...step([f.domain], () => ({ title: `Block ${f.domain} at your resolver`, why: 'Cuts the channel.', linux: `echo "local-zone: \\"${f.domain}\\" refuse" | sudo tee -a /etc/unbound/unbound.conf` })),
       ...step([f.host], () => ({ title: `Investigate ${f.host}`, why: 'Something on it is running the tunnel.', linux: 'sudo ss -tunap', windows: 'Get-NetUDPEndpoint | Sort-Object OwningProcess' })),

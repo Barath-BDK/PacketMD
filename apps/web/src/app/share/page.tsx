@@ -16,7 +16,7 @@ export default function Share() {
   if (state === 'gone' || !data) return <div className="center"><h1 className="disp h2">This link has expired or does not exist.</h1></div>;
   return (
     <div className="pad">
-      <p className="sm">Shared report. Addresses are replaced with labels.</p>
+      <p className="sm">Shared report. The person who made this link supplied its contents, so PacketMD cannot vouch for them. IP and MAC addresses are normally replaced with labels. Domains and hostnames are not.</p>
       <h1 className="disp h2 rise d1" style={{ maxWidth: '22ch' }}>{data.summary.headline}</h1>
       {data.findings.map((f) => (
         <article key={f.id} className="veil" style={{ padding: 24, marginTop: 20 }}>

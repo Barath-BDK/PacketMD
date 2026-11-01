@@ -1,7 +1,7 @@
 import { fullPayload, payload, pseudonymize } from '../apps/web/src/lib/payload';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyze, BUDGET, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
+import { analyze, BUDGET, TEMPLATES, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
 import { createHash } from 'node:crypto';
 import { fileSource } from '../packages/cli/src/source';
 
@@ -154,5 +154,35 @@ describe('share payload', () => {
     const out = JSON.stringify(pseudonymize({ a: '192.168.1.10 and 00:1a:2b:00:00:10', b: '2001:db8::1 and fe80::1:2', c: 'at 10:30:15' }));
     expect(out).not.toMatch(/192\.168|00:1a|2001:db8|fe80/);
     expect(out).toContain('10:30:15');
+  });
+});
+
+describe('audit fixes', () => {
+  const cmds = (id: string, f: Record<string, unknown>) => JSON.stringify(TEMPLATES[id]!.fix(f as never));
+  it('drops any fix command built from a hostile DNS name', () => {
+    for (const bad of ['a,;echo INJECTED;', 'a,$(id).x', 'a b', 'a"b', '-fdummy.txt', 'a,-x']) {
+      expect(cmds('dns-failure', { server: '10.0.0.53', sample: bad }), bad).not.toContain('dig @');
+      expect(cmds('dns-tunnel', { domain: bad }), bad).not.toContain('local-zone');
+      expect(cmds('dns-hijack', { qname: bad, forged: bad }), bad).not.toContain('iptables');
+    }
+  });
+  it('still writes the command for a normal name', () => {
+    expect(cmds('dns-failure', { server: '10.0.0.53', sample: 'www.example.com' })).toContain('dig @10.0.0.53 www.example.com');
+  });
+  it('a backslash cannot undo Markdown escaping', () => {
+    expect(neutralize('\\[click\\](https://x.invalid)')).toBe('\\\\\\[click\\\\\\](https://x.invalid)');
+    expect(neutralize('\\<img>')).toBe('\\\\\\<img\\>');
+  });
+  it('masks every address form the engine writes', () => {
+    const out = JSON.stringify(pseudonymize({ a: 'findstr 00-1a-2b-00-00-10', b: '00:1a:2b:00:00:10', c: '::ffff:a00:1', d: '2001:db8:aa:bb:cc:dd:ee:ff', e: '::1', t: 'at 10:30:05', ip: 'edge-10.0.0.5.pcap' })) as string;
+    for (const raw of ['00-1a-2b', '00:1a:2b', 'ffff:a00', '2001:db8', '::1', '10.0.0.5']) expect(out, raw).not.toContain(raw);
+    expect(out).toContain('10:30:05');
+    const j = JSON.parse(out) as { a: string; b: string };
+    expect(j.a).toBe(`findstr ${j.b}`);
+  });
+  it('cannot be hung by a crafted name', () => {
+    const t = performance.now();
+    pseudonymize({ d: Array.from({ length: 300 }, () => `a:b:${'a'.repeat(240)}g`) });
+    expect(performance.now() - t).toBeLessThan(500);
   });
 });
