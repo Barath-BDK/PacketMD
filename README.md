@@ -2,7 +2,7 @@
 
 PacketMD reads a packet capture and tells you whether your network has a fault or is under attack. It explains the problem in plain language, shows the exact packets that prove each claim, and writes a fix using the real addresses from your file. The capture never leaves your device.
 
-Built for the IIITDM Kancheepuram cybersecurity hackathon, Network Track. Live site: https://packetmd.vercel.app. Demo video: *link to be added before submission*.
+Built for the IIITDM Kancheepuram cybersecurity hackathon, Network Track. Live site: https://packetmd.vercel.app. Demo video: [watch the demo](demo/PacketMD-Demo.mp4).
 
 ## The problem
 
