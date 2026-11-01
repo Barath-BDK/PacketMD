@@ -138,6 +138,13 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .lane-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 14px 16px; background: var(--veil); border: 1px solid var(--edge); border-left: 3px solid var(--bar); color: inherit; font: inherit; text-align: left }
 .lane-row:hover { background: var(--scan) }
 .lane-row.ATTACK { border-left-color: var(--ac) } .lane-row.FAULT { border-left-color: var(--fg) } .lane-row.INCONCLUSIVE { border-left-color: var(--tint) }
+.status { gap: 10px; padding-block: 20px 44px }
+.status-code { margin: 0 !important; max-width: none !important; font-family: var(--font-disp), 'Big Shoulders', 'Arial Narrow', sans-serif; font-weight: 900; font-size: clamp(80px, min(20vw, 20vh), 200px); line-height: .9; text-transform: uppercase; color: var(--ac) }
+.trace { width: min(460px, 100%); height: 44px; overflow: visible }
+.trace path { fill: none; stroke: var(--ac); stroke-width: 2.4; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: tracedraw 1.5s cubic-bezier(.3, .7, .2, 1) .15s forwards }
+@keyframes tracedraw { to { stroke-dashoffset: 0 } }
+.status-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 28px; margin-top: 8px; font-size: 15px }
+a.btn { text-decoration: none }
 .pair { padding: 16px 0; border-top: 1px solid var(--edge) }
 .pair h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600 }
 .inv-list { display: grid; gap: 10px; margin-top: 16px }
@@ -270,6 +277,7 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 }
 @media (prefers-reduced-motion: reduce) {
   .rise, .flip, .pk-detail, .panel.entering { animation: none }
+  .trace path { animation: none; stroke-dashoffset: 0 }
   .ink, .panel { transition: none }
   .pk { transition: none }
   .scan:hover .line { animation: none; opacity: 0 }
