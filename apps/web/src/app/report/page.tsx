@@ -152,7 +152,8 @@ export default function ReportPage() {
   const n = r.findings.filter((f) => f.lane !== 'BENIGN').length;
   // A saved report has no packets, and its labelled addresses cannot be compared with a new capture.
   const tabList = c.archived ? TABS.filter(([id]) => id !== 'investigator' && id !== 'verify') : TABS;
-  const [head, ...rest] = r.headline.split('. ');
+  const [first, ...rest] = r.headline.split('. ');
+  const head = first!.replace(/\.$/, '');
   return (
     <div className="pad" style={{ paddingTop: 36 }}>
       <p className="sm" style={{ margin: '0 0 6px' }}>{r.defense.fileName}, SHA-256 {r.defense.sha256.slice(0, 16)}...</p>
