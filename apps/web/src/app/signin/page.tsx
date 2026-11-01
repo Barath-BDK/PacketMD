@@ -52,6 +52,11 @@ export default function SignIn() {
   const [mode, setMode] = useState<'login' | 'create'>('login');
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null), [role, setRole] = useState<string | null>(null);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const resend = async () => {
+    const { error } = (await sb?.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${location.origin}/signin` } })) ?? {};
+    setMsg(error ? 'Please wait a minute before asking for another email.' : 'Sent. Check your inbox and spam folder.');
+  };
   const creating = mode === 'create';
   const tempMail = creating && isDisposableEmail(email);
 
@@ -60,7 +65,7 @@ export default function SignIn() {
   // The card resizes and its contents slide across, so the page itself never changes.
   const switchTo = (m: 'login' | 'create') => {
     const el = card.current, from = el?.offsetHeight ?? 0, fromW = el?.offsetWidth ?? 0;
-    flushSync(() => { setMode(m); setMsg(''); setPw(''); setPw2(''); });
+    flushSync(() => { setMode(m); setMsg(''); setUnconfirmed(false); setPw(''); setPw2(''); });
     if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const to = el.offsetHeight, toW = el.offsetWidth, ease = 'cubic-bezier(.3, .7, .2, 1)', dx = m === 'create' ? 22 : -22;
     el.style.overflow = 'hidden';
@@ -71,12 +76,15 @@ export default function SignIn() {
   const submit = async () => {
     if (!sb) return;
     if (!ready) { setMsg('Finish the checklist first.'); return; }
-    setBusy(true); setMsg('');
-    const { data, error } = creating ? await sb.auth.signUp({ email, password: pw }) : await sb.auth.signInWithPassword({ email, password: pw });
+    setBusy(true); setMsg(''); setUnconfirmed(false);
+    const back = { emailRedirectTo: `${location.origin}/signin` };
+    const { data, error } = creating ? await sb.auth.signUp({ email, password: pw, options: back }) : await sb.auth.signInWithPassword({ email, password: pw });
     setBusy(false); setPw(''); setPw2('');
     // One message for every failure, so this form cannot be used to test which emails exist.
+    // Supabase only reports this after the password matched, so it does not reveal which emails exist.
+    if (error?.code === 'email_not_confirmed') { setUnconfirmed(true); setMsg('Your email is not confirmed yet. Click the link we sent you, and check your spam folder.'); return; }
     if (error) { setMsg('That did not work. Check the details and try again.'); return; }
-    if (creating && !data.session) { setMsg('Check your email to confirm the account, then log in.'); switchTo('login'); return; }
+    if (creating && !data.session) { switchTo('login'); setMsg('Account created. Click the link we emailed you, then log in here. Check your spam folder if you cannot see it.'); return; }
     setUser(data.user); setRole(await roleOf(data.user));
   };
 
@@ -108,7 +116,8 @@ export default function SignIn() {
           <Scan onClick={() => go('/investigations')}>My investigations</Scan>
           <Hv onClick={() => sb?.auth.signOut().then(() => { setUser(null); setRole(null); })}>Log out</Hv>
         </>}
-        {msg && <p role="status" className="ac" style={{ margin: 0 }}>{msg}</p>}
+        {msg && <p role="status" className="ac" style={{ margin: 0, lineHeight: 1.45 }}>{msg}</p>}
+        {unconfirmed && <button type="button" className="btn" onClick={() => void resend()}>Send the email again</button>}
         {!creating && <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.5, textAlign: 'center' }}>No account is needed to scan a file. Accounts keep your reports.</p>}
       </div>
     </div>
