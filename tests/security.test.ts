@@ -112,6 +112,25 @@ describe('filter language', () => {
   });
   it('explains errors in plain words', () => expect(() => parseFilter('nonsense == 1', env)).toThrow(/does not know/));
   it('treats code as a harmless unknown field', () => expect(() => parseFilter('process.exit(1)', env)).toThrow());
+  it('only ever raises its own plain error, whatever is typed', () => {
+    const hostile = ['constructor == 1', '__proto__ == x', 'toString == 1', 'hasOwnProperty == a', '<script>alert(1)</script>', '<img src=x onerror=alert(1)> == 1', "' OR 1=1 --", '"', '""', '((((', '))))', 'not', '!', 'and', 'or or', '==', '== ==',
+      'ip.addr ==', 'tcp.port == abc', 'tcp.port == 99999', 'tcp.port == -1', 'tcp.port == 1e3', 'tcp.port == 0x50', 'frame.number == 1.5', 'frame.number in 1-', 'frame.number in 1-99999999999', 'flag:', 'flag:__proto__', 'finding:', 'finding:__proto__',
+      'domain contains', 'dns.qry.name contains ""', '('.repeat(5000), 'not '.repeat(5000), '!'.repeat(50000), 'a'.repeat(100000), 'ip.src == 1 or '.repeat(200) + 'ip.src == 1'];
+    for (const q of hostile) {
+      try { parseFilter(q, env)(row); expect.unreachable(`accepted ${q.slice(0, 30)}`); } catch (e) {
+        expect((e as Error).constructor.name, q.slice(0, 30)).toBe('FilterError');
+        expect((e as Error).message.length, q.slice(0, 30)).toBeLessThan(120);
+      }
+    }
+  });
+  it('does not repeat control or direction characters in an error', () => {
+    try { parseFilter('\u202egnp\u0007 == 1', env); expect.unreachable(); } catch (e) { expect((e as Error).message).not.toMatch(/[\u0000-\u001f\u202e]/); }
+  });
+  it('still allows long honest filters and a blank box', () => {
+    expect(parseFilter('   ', env)(row)).toBe(true);
+    expect(parseFilter(Array.from({ length: 12 }, (_, i) => `tcp.port == ${i + 440}`).join(' or '), env)(row)).toBe(true);
+    expect(parseFilter('flag:rst', env)(row)).toBe(false);
+  });
 });
 
 describe('claim-to-packet binding and stories', () => {

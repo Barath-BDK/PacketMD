@@ -8,7 +8,7 @@ export { safeText, neutralize, safeName } from './sanitize';
 export { Sha256, md5 } from './hash';
 export { diffReports } from './verify';
 export { dissect, followStream, toMarkdown, locator } from './inspect';
-export { parseFilter, FilterError } from './filter';
+export { parseFilter, FilterError, FILTER_MAX_CHARS } from './filter';
 export { HYPOTHESES } from './verdict/catalog';
 export { isDisposableEmail } from './disposable';
 export { checkPassword, passwordOk, PASSWORD_MAX, PASSWORD_MIN } from './password';

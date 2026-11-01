@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FilterError, locator, parseFilter, type Evidence, type PacketRow, type Report, type TreeNode } from '@packetmd/core';
+import { FILTER_MAX_CHARS, FilterError, locator, parseFilter, type Evidence, type PacketRow, type Report, type TreeNode } from '@packetmd/core';
 import { useCase } from '@/lib/engine';
 import { Copy } from './parts';
 
@@ -95,11 +95,11 @@ export function Investigator({ r }: { r: Report }) {
       <div className="inv-top">
         <div>
           <label className="sm" htmlFor="pk-filter">Filter packets</label>
-          <input id="pk-filter" list="pk-fields" className="cr-input mono" aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66 and proto == ARP" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
+          <input id="pk-filter" list="pk-fields" className="cr-input mono" maxLength={FILTER_MAX_CHARS} aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66 and proto == ARP" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
         </div>
         <form onSubmit={(e) => { e.preventDefault(); jumpTo(+goTo); }}>
           <label className="sm" htmlFor="pk-go">Go to packet</label>
-          <input id="pk-go" className="cr-input mono" inputMode="numeric" placeholder="137" value={goTo} onChange={(e) => setGoTo(e.target.value.replace(/\D/g, ''))} style={{ fontSize: 14 }} />
+          <input id="pk-go" className="cr-input mono" inputMode="numeric" maxLength={10} placeholder="137" value={goTo} onChange={(e) => setGoTo(e.target.value.replace(/\D/g, ''))} style={{ fontSize: 14 }} />
         </form>
       </div>
       <div className="flt" role="group" aria-label="Quick filters">{quick.map(([l, f]) => <button type="button" key={f} className="btn" aria-pressed={q === f} onClick={() => { setQ(q === f ? '' : f); setTop(0); if (list.current) list.current.scrollTop = 0; }}>{l}</button>)}</div>
