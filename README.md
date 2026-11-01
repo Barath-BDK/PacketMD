@@ -48,6 +48,8 @@ Attacks: ARP spoofing, DNS hijacking, rogue DHCP, port scans, SYN floods, DNS tu
 
 You need Node 20 or later and pnpm. Nothing else, and no account.
 
+On Windows, clone to a short path such as `C:\dev\packetmd`. Very long paths can break the test runner.
+
 ```bash
 pnpm i
 pnpm dev
