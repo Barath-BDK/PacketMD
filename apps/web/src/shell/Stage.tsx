@@ -10,7 +10,7 @@ export const THEMES = {
 const SCENES: Record<string, { sx: number; sy: number; z: number; d: number }> = {
   home: { sx: 0, sy: 0, z: 1, d: 1 },
   console: { sx: 0.34, sy: 0.05, z: 1.3, d: 0.42 },
-  signin: { sx: 0.16, sy: -0.08, z: 1.4, d: 0.8 },
+  signin: { sx: 0.34, sy: 0.05, z: 1.3, d: 0.42 },
 };
 export const BGS = [{ id: 1, label: 'Topo', pair: 1 }, { id: 0, label: 'Wave', pair: 2 }, { id: 2, label: 'Embers', pair: 4 }, { id: 3, label: 'Fissure', pair: 5 }, { id: 4, label: 'Sonar', pair: 6 }, { id: 5, label: 'Defense', pair: 7 }, { id: 6, label: 'Ridge', pair: 8 }, { id: 7, label: 'Network', pair: 8 }];
 export const DIMS = [{ label: 'Normal', v: 1 }, { label: 'Dim', v: 0.55 }, { label: 'Low', v: 0.3 }];
@@ -102,10 +102,10 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       gl.uniform2f(u.M!, ptr.x / size.h, 1 - ptr.y / size.h);
       gl.uniform1f(u.T!, reduced ? 52 : (performance.now() - t0) / 1000 + 10);
       gl.uniform1f(u.Z!, cam.z * (1 + cam.surge * 7));
-      gl.uniform1f(u.D!, cam.d * (1 - cam.surge * 0.8) * DIMS[cur.look.dim]!.v);
+      gl.uniform1f(u.D!, cam.d * (1 - cam.surge * 0.8) * (cur.page === 'signin' ? 1 : DIMS[cur.look.dim]!.v));
       gl.uniform1f(u.W!, cam.w); gl.uniform1f(u.Mo!, cam.mo); gl.uniform1f(u.E!, cam.e); gl.uniform1f(u.L!, colors.l);
       // Console pages always use Original: the clearing versions leave them almost black.
-      gl.uniform1i(u.V!, cur.page === 'console' ? 0 : cur.look.version);
+      gl.uniform1i(u.V!, cur.page === 'home' ? cur.look.version : 0);
       gl.uniform1i(u.GA!, gA); gl.uniform1i(u.GB!, gB); gl.uniform1i(u.N!, count); gl.uniform1i(u.NU!, uiCount);
       gl.uniform4fv(u.Q!, rects);
       gl.uniform3f(u.A!, a[0]! * 0.62 + m[0]! * 0.38, a[1]! * 0.62 + m[1]! * 0.38, a[2]! * 0.62 + m[2]! * 0.38);
@@ -179,7 +179,8 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
       last = now;
       const k = 1 - Math.exp(-dt * 2.4);
       cam.sx += (target.sx - cam.sx) * k; cam.sy += (target.sy - cam.sy) * k; cam.z += (target.z - cam.z) * k; cam.d += (target.d - cam.d) * k; cam.e += (edge - cam.e) * k;
-      const bg = live.current.look.bg;
+      // Log in and sign up always use the default background, whatever Look is set to.
+      const bg = live.current.page === 'signin' ? 1 : live.current.look.bg;
       if (bg !== gB) { gA = gB; gB = bg; cam.w = 0; }
       if (gA !== gB) { cam.w += (1 - cam.w) * k * 1.6; if (cam.w > 0.99) { gA = gB; cam.w = 0; } }
       // Hovering any control strengthens the background's cursor reaction.

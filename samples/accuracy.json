@@ -1,9 +1,9 @@
 {
-  "samples": 25,
+  "samples": 27,
   "precision": 1,
   "recall": 1,
   "falseAlarmRate": 0,
-  "hardNegatives": 6,
+  "hardNegatives": 7,
   "rows": [
     {
       "file": "normal-baseline",
@@ -279,6 +279,26 @@
       "got": [
         "inconclusive:arp-spoof"
       ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "fix-demo-1-attack",
+      "expected": [
+        "arp-spoof"
+      ],
+      "got": [
+        "arp-spoof"
+      ],
+      "ok": true,
+      "extra": [],
+      "missed": []
+    },
+    {
+      "file": "fix-demo-2-after-fix",
+      "expected": [],
+      "got": [],
       "ok": true,
       "extra": [],
       "missed": []

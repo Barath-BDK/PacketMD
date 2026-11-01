@@ -353,6 +353,22 @@ def s_ambiguous():
     save("arp-gateway-ambiguous", p, ["inconclusive:arp-spoof"], note="Could be a spoof or a bad DHCP lease: the evidence does not settle it")
 
 
+def s_fix_demo():
+    c = T(1760200000.0)
+    p = dhcp_flow(c, A_MAC, GW_IP, GW_MAC, A_IP, GW_IP, [DNS_IP], name="reception-pc") + normal(c, 2)
+    p.append(c.at(eth(GW_MAC, A_MAC) / ARP(op=2, hwsrc=GW_MAC, psrc=GW_IP, hwdst=A_MAC, pdst=A_IP), 0.1))
+    p += spoof_frames(c, 14)
+    p += tcp_session(c, A_MAC, A_IP, EVIL_MAC, WEB, 443, n=8, payload=tls_hello("www.example.com"))
+    save("fix-demo-1-attack", p, ["arp-spoof"], note="Before: an attacker poisons the gateway address. Open this one first")
+    c = T(1760203600.0)
+    p = dhcp_flow(c, A_MAC, GW_IP, GW_MAC, A_IP, GW_IP, [DNS_IP], name="reception-pc") + normal(c, 2)
+    for _ in range(3):
+        p.append(c.at(eth(A_MAC, BCAST) / ARP(op=1, hwsrc=A_MAC, psrc=A_IP, pdst=GW_IP), 2))
+        p.append(c.at(eth(GW_MAC, A_MAC) / ARP(op=2, hwsrc=GW_MAC, psrc=GW_IP, hwdst=A_MAC, pdst=A_IP), 0.002))
+    p += tcp_session(c, A_MAC, A_IP, GW_MAC, WEB, 443, n=8, payload=tls_hello("www.example.com"))
+    save("fix-demo-2-after-fix", p, [], allowed=["benign"], note="After: same network with the attacker removed. Use it in Verify fix")
+
+
 def s_verify():
     c = T(1760100000.0); p = normal(c, 3)
     save("mixed-incident-after-fix", p, [], note="Same network after the fixes, used by Verify Fix", allowed=["benign"])
@@ -365,7 +381,7 @@ def s_large():
     wrpcap(str(OUT / "large-capture.pcap"), p)
 
 
-for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify, s_ambiguous):
+for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify, s_ambiguous, s_fix_demo):
     fn()
 if "--large" in sys.argv:
     s_large()

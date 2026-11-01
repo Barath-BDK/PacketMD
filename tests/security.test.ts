@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyze, BUDGET, decode, gate, neutralize, parseFilter, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
+import { analyze, BUDGET, checkPassword, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
 import { createHash } from 'node:crypto';
 import { fileSource } from '../packages/cli/src/source';
 
@@ -80,6 +80,16 @@ describe('own hashes', () => {
     expect(h.digest()).toBe(createHash('sha256').update(b).digest('hex'));
   });
   it('md5 matches node crypto', () => expect(md5('771,4865-4866,0-23,29-23,0')).toBe(createHash('md5').update('771,4865-4866,0-23,29-23,0').digest('hex')));
+});
+
+describe('password rules', () => {
+  it('refuses weak passwords', () => {
+    for (const p of ['1234567890', '12345678901234', 'password', 'P@ssw0rd12345!', 'Qwertyuiop12!', 'Aaaaaaaaaaa1!', 'Abcdefgh1234!', 'short1!A']) expect(passwordOk(p), p).toBe(false);
+  });
+  it('accepts a strong one', () => expect(passwordOk('Tiger-Plum9!river', 'sam@example.com')).toBe(true));
+  it('refuses a password holding the email name', () => expect(passwordOk('Barath-Plum9!river', 'barath@example.com')).toBe(false));
+  it('refuses more than bcrypt can use', () => expect(passwordOk('Tiger-Plum9!' + 'kx'.repeat(40))).toBe(false));
+  it('shows every rule unmet for an empty box', () => expect(checkPassword('').filter((r) => r.ok).length).toBeLessThanOrEqual(1));
 });
 
 describe('filter language', () => {

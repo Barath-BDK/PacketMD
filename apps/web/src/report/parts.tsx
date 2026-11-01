@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { locator, neutralize, toMarkdown, type Evidence, type Finding, type Report } from '@packetmd/core';
 import { useCase } from '@/lib/engine';
 
@@ -16,15 +16,32 @@ export function Proof({ nos }: { nos: number[] }) {
   return <>{nos.slice(0, 10).map((n) => <button type="button" key={n} className="cr-btn chip" aria-label={`Open packet ${n}`} onClick={() => { c.setJump(n); c.setTab('investigator'); }}>#{n}</button>)}{nos.length > 10 && <span className="sm">+{nos.length - 10} more</span>}</>;
 }
 
+/** A marker that slides to the selected control instead of jumping between them. */
+export function useInk(dep: unknown) {
+  const box = useRef<HTMLDivElement>(null), ink = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const place = () => {
+      const on = box.current?.querySelector<HTMLElement>('[aria-selected="true"], [aria-pressed="true"]');
+      if (!on || !ink.current) return;
+      ink.current.style.width = `${on.offsetWidth}px`;
+      ink.current.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop + on.offsetHeight - 2}px)`;
+    };
+    place();
+    addEventListener('resize', place);
+    return () => removeEventListener('resize', place);
+  }, [dep]);
+  return { box, ink };
+}
+
 export function Levels() {
-  const c = useCase();
-  return <div role="group" aria-label="Reading level" className="mono levels" style={{ display: 'flex', gap: 16, fontSize: 13 }}>{(['beginner', 'technical', 'analyst'] as const).map((l) => <button type="button" key={l} className="cr-btn under st" aria-pressed={c.level === l} onClick={() => c.setLevel(l)} style={{ textTransform: 'capitalize' }}>{l}</button>)}</div>;
+  const c = useCase(), { box, ink } = useInk(c.level);
+  return <div ref={box} role="group" aria-label="Reading level" className="mono levels ink-wrap" style={{ display: 'flex', gap: 16, fontSize: 13 }}><i ref={ink} className="ink" />{(['beginner', 'technical', 'analyst'] as const).map((l) => <button type="button" key={l} className="cr-btn under st" aria-pressed={c.level === l} onClick={() => c.setLevel(l)} style={{ textTransform: 'capitalize' }}>{l}</button>)}</div>;
 }
 
 const HEAD = {
   beginner: { why: 'Why it happened', rule: 'Why it is not something else', sure: 'How sure are we' },
   technical: { why: 'Root cause', rule: 'Differential', sure: 'Confidence' },
-  analyst: { why: 'Signal weights', rule: 'Hypothesis scores', sure: 'Decision state' },
+  analyst: { why: 'Attribution and signal weights', rule: 'Competing explanations and scores', sure: 'How the decision was made' },
 };
 
 export function FindingCard({ f, r }: { f: Finding; r: Report }) {
@@ -38,15 +55,16 @@ export function FindingCard({ f, r }: { f: Finding; r: Report }) {
         <h3 className="disp h3">{f.title}</h3>
         <span><Lane l={f.lane} /> <span className="sm" style={{ marginLeft: 10 }}>{f.confidence} confidence</span></span>
       </div>
-      <p className={raw ? 'dat' : ''} style={{ fontSize: raw ? undefined : 17, lineHeight: 1.5, maxWidth: '76ch', overflowWrap: 'anywhere' }}>{t.what}</p>
+      <p style={{ fontSize: 17, lineHeight: 1.55, maxWidth: '82ch', overflowWrap: 'anywhere' }}>{t.what}</p>
+      {t.fields && <p className="dat" style={{ overflowWrap: 'anywhere' }}><span className="sm">Raw fields: </span>{t.fields}</p>}
       <p style={{ margin: '6px 0' }}><Proof nos={f.evidence.map((e) => e.no)} /></p>
       {causes.length > 0 && <p className="muted">{c.level === 'beginner' ? 'This is probably a side effect of' : 'Caused by'}: {causes.join(', ')}.</p>}
       {f.nextCapture && <p><span className="sm">Capture this next</span><br />{f.nextCapture}</p>}
       <div className="grid-2" style={{ marginTop: 16 }}>
-        <div><h4 className="sm" style={{ margin: 0 }}>{h.why}</h4><p className={raw ? 'dat' : ''} style={{ lineHeight: 1.5, overflowWrap: 'anywhere' }}>{t.why}</p></div>
-        <div><h4 className="sm" style={{ margin: 0 }}>{h.rule}</h4><p className={raw ? 'dat' : ''} style={{ lineHeight: 1.5, overflowWrap: 'anywhere' }}>{t.rule}</p></div>
+        <div><h4 className="sm" style={{ margin: 0 }}>{h.why}</h4><p style={{ lineHeight: 1.55, overflowWrap: 'anywhere' }}>{t.why}</p></div>
+        <div><h4 className="sm" style={{ margin: 0 }}>{h.rule}</h4><p style={{ lineHeight: 1.55, overflowWrap: 'anywhere' }}>{t.rule}</p></div>
       </div>
-      <p className={raw ? 'dat' : ''} style={{ lineHeight: 1.5 }}><span className="sm">{h.sure}: </span>{t.sure}</p>
+      <p style={{ lineHeight: 1.55 }}><span className="sm">{h.sure}: </span>{t.sure}</p>
       {c.level === 'beginner' && <p style={{ lineHeight: 1.5 }}><span className="sm">In real life: </span>{f.analogy}</p>}
       {c.level !== 'beginner' && <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
         {raw && first && <p className="dat" style={{ margin: 0 }}>{locator(first)} <Copy text={locator(first)} label="Copy locator" /></p>}
@@ -83,7 +101,7 @@ export function FixPlan({ r }: { r: Report }) {
                     <input type="checkbox" checked={!!done[k]} onChange={(e) => setDone({ ...done, [k]: e.target.checked })} />
                     <span style={{ fontWeight: 600, textDecoration: done[k] ? 'line-through' : 'none' }}>{s.title}</span>
                   </label>
-                  {c.level !== 'analyst' && <p className="muted" style={{ margin: '6px 0' }}>{s.why}</p>}
+                  <p className="muted" style={{ margin: '6px 0' }}>{s.why}</p>
                   {c.level === 'beginner' ? <details style={{ marginTop: 6 }}><summary className="sm">Show the command</summary><div style={{ marginTop: 8 }}>{box}</div></details> : <div style={{ marginTop: 8 }}>{box}</div>}
                 </li>
               );
@@ -110,6 +128,7 @@ export function Differential({ r }: { r: Report }) {
       <div className="veil" style={{ padding: 24 }}>
         <h3 className="disp h3">{f.title}</h3>
         <p className="sm">{b ? 'Each possible explanation competes on the evidence.' : `Margin between first and second place: ${Math.round(f.margin * 100)} points`}</p>
+        {a && <p style={{ lineHeight: 1.55 }}>{f.levels.analyst.rule} {f.levels.analyst.sure}</p>}
         {f.hypotheses.map((h, i) => (
           <div key={h.id} style={{ padding: '10px 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>{h.title}</span><span className="dat">{b ? odds(h.prob) : a ? `score ${h.score}, p ${h.prob.toFixed(4)}` : `${(h.prob * 100).toFixed(1)}%`}</span></div>

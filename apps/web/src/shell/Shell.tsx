@@ -9,7 +9,7 @@ const HOVERS = ['Trace', 'Decode', 'Brackets', 'Flood'];
 const SMALLS = ['Grey', 'Ink', 'Tint', 'Large'];
 const STORE = 'packetmd.look';
 
-const Ctx = createContext<{ go(href: string): void }>({ go() {} });
+const Ctx = createContext<{ go(href: string): void; jump(el: HTMLElement | null): void }>({ go() {}, jump() {} });
 export const useShell = () => useContext(Ctx);
 
 const sceneOf = (p: string) => (p === '/' ? 'home' : p === '/signin' ? 'signin' : 'console');
@@ -44,6 +44,7 @@ function Opts({ label, items, value, pick }: { label: string; items: string[]; v
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(), router = useRouter();
   const root = useRef<HTMLDivElement>(null), api = useRef<StageApi | null>(null), scroller = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
   const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });
   const [showLook, setShowLook] = useState(false);
@@ -65,11 +66,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !scroller.current) return;
     const lenis = new Lenis({ wrapper: scroller.current, content: content.current!, lerp: 0.16 });
+    lenisRef.current = lenis;
     let id = requestAnimationFrame(function loop(t) { lenis.raf(t); id = requestAnimationFrame(loop); });
-    return () => { cancelAnimationFrame(id); lenis.destroy(); };
+    return () => { cancelAnimationFrame(id); lenis.destroy(); lenisRef.current = null; };
   }, []);
 
-  useEffect(() => { api.current?.scene(sceneOf(path)); scroller.current?.scrollTo(0, 0); }, [path]);
+
+  // All programmatic scrolling goes through Lenis, or its own target would pull the page back.
+  const jump = useCallback((el: HTMLElement | null) => {
+    const page = scroller.current;
+    if (!page) return;
+    const y = el ? el.getBoundingClientRect().top - page.getBoundingClientRect().top + page.scrollTop : 0;
+    const lenis = lenisRef.current;
+    if (lenis) { lenis.resize(); lenis.scrollTo(y, { immediate: true, force: true }); } else page.scrollTop = y;
+  }, []);
+
+  useEffect(() => { api.current?.scene(sceneOf(path)); jump(null); }, [path, jump]);
 
   const go = useCallback((href: string) => {
     if (href === path) return;
@@ -79,7 +91,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [mode, path, router]);
 
   const toggle = () => { const m = mode === 'dark' ? 'light' : 'dark'; api.current ? api.current.run(m, () => setMode(m)) : setMode(m); };
-  const value = useMemo(() => ({ go }), [go]);
+  const value = useMemo(() => ({ go, jump }), [go, jump]);
   const page = sceneOf(path);
   const fx = phase === 'idle' ? { opacity: 1 } : phase === 'out' ? { opacity: 0, transform: 'scale(1.1)', filter: 'blur(4px)' } : { opacity: 0, transform: 'scale(.92)', filter: 'blur(4px)', transition: 'none' };
   const nav: [string, string][] = [['/', 'Overview'], ['/report', 'Report'], ['/security', 'Security'], ['/methodology', 'Methodology'], ['/signin', 'Log in']];

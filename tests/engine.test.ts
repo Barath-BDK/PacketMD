@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { analyze, diffReports, type Report } from '@packetmd/core';
+import { analyze, diffReports, HYPOTHESES, type Report } from '@packetmd/core';
+import { MECHANISM } from '../packages/core/src/explain/analyst';
 import { fileSource } from '../packages/cli/src/source';
 import { decide, softmax } from '../packages/core/src/verdict/engine';
 
@@ -65,6 +66,29 @@ describe('fixes are file-specific', () => {
   });
 });
 
+describe('fix demo pair', () => {
+  it('reports the attack, then RESOLVED on the fixed capture', async () => {
+    const before = await run('fix-demo-1-attack');
+    expect(before.findings.some((f) => f.lane === 'ATTACK' && f.hypothesis === 'arp-spoof')).toBe(true);
+    const rows = diffReports(before, await run('fix-demo-2-after-fix'));
+    expect(rows.filter((x) => x.hypothesis === 'arp-spoof').map((x) => x.status)).toEqual(['RESOLVED']);
+    expect(rows.every((x) => x.status === 'RESOLVED')).toBe(true);
+  });
+});
+
+describe('analyst level', () => {
+  it('explains in sentences as well as giving the raw fields', async () => {
+    for (const n of ['arp-spoof', 'dns-hijack', 'mtu-blackhole', 'failover-gratuitous-arp', 'arp-gateway-ambiguous']) {
+      for (const f of (await run(n)).findings) {
+        expect(f.levels.analyst.what.length).toBeGreaterThan(200);
+        expect(f.levels.analyst.what).not.toContain('undefined');
+        expect(f.levels.analyst.fields).toBeTruthy();
+      }
+    }
+  });
+  it('has a mechanism for every hypothesis', () => { for (const h of Object.keys(HYPOTHESES)) expect(MECHANISM[h], h).toBeTruthy(); });
+});
+
 describe('stories', () => {
   it('explain why a benign verdict is benign', async () => {
     const f = (await run('failover-gratuitous-arp')).findings.find((x) => x.lane === 'BENIGN')!;
@@ -80,6 +104,7 @@ describe('stories', () => {
     const f = (await run('arp-spoof')).findings[0]!;
     expect(new Set([f.levels.beginner.what, f.levels.technical.what, f.levels.analyst.what]).size).toBe(3);
     expect(new Set([f.levels.beginner.why, f.levels.technical.why, f.levels.analyst.why]).size).toBe(3);
+    expect(f.story.every((s) => s.analyst.length > s.caption.length || s.analyst.includes(s.caption))).toBe(true);
   });
   it('start at the attacker, not at earlier innocent traffic', async () => {
     const r = await run('arp-spoof'), f = r.findings[0]!;

@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { User } from '@supabase/supabase-js';
+import { checkPassword, passwordOk } from '@packetmd/core';
 import { hasBackend, roleOf, sb } from '@/lib/backend';
 import { Hv, Scan, useShell } from '@/shell/Shell';
 
-function Password({ label, value, onChange, auto, placeholder }: { label: string; value: string; onChange(v: string): void; auto: string; placeholder?: string }) {
+function Password({ label, value, onChange, auto, placeholder, describedBy }: { label: string; value: string; onChange(v: string): void; auto: string; placeholder?: string; describedBy?: string }) {
   const [show, setShow] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const toggle = () => {
@@ -14,7 +16,7 @@ function Password({ label, value, onChange, auto, placeholder }: { label: string
   return (
     <label className="sm">{label}
       <span className="pw">
-        <input ref={input} className="cr-input" type={show ? 'text' : 'password'} required minLength={10} autoComplete={auto} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+        <input ref={input} className="cr-input" type={show ? 'text' : 'password'} required aria-describedby={describedBy} autoComplete={auto} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
         <button type="button" className="eye" aria-pressed={show} aria-label={show ? 'Hide password' : 'Show password'} onClick={toggle}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path className="lid" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
@@ -27,6 +29,24 @@ function Password({ label, value, onChange, auto, placeholder }: { label: string
   );
 }
 
+function Checklist({ pw, pw2, email }: { pw: string; pw2: string; email: string }) {
+  const rules = [...checkPassword(pw, email), { id: 'match', label: 'Both passwords match', ok: pw.length > 0 && pw === pw2 }];
+  const left = rules.filter((r) => !r.ok).length;
+  return (
+    <div id="pw-rules">
+      <p className="pw-title" role="status">{left ? `${left} of ${rules.length} still needed` : 'Strong password'}</p>
+      <ul className="pwc">
+        {rules.map((r) => (
+          <li key={r.id} className={r.ok ? 'ok' : ''}>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" /><path className="tick" pathLength={1} d="M4 8.5l2.8 2.8L12 5.5" /></svg>
+            <span>{r.label}<span className="sr-only">{r.ok ? ', done' : ', not done'}</span></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function SignIn() {
   const { go } = useShell();
   const [mode, setMode] = useState<'login' | 'create'>('login');
@@ -35,10 +55,21 @@ export default function SignIn() {
   const creating = mode === 'create';
 
   useEffect(() => { sb?.auth.getUser().then(async ({ data }) => { setUser(data.user); setRole(await roleOf(data.user)); }); }, []);
-  const switchTo = (m: 'login' | 'create') => { setMode(m); setMsg(''); setPw(''); setPw2(''); };
+  const card = useRef<HTMLDivElement>(null), body = useRef<HTMLFormElement>(null);
+  // The card resizes and its contents slide across, so the page itself never changes.
+  const switchTo = (m: 'login' | 'create') => {
+    const el = card.current, from = el?.offsetHeight ?? 0;
+    flushSync(() => { setMode(m); setMsg(''); setPw(''); setPw2(''); });
+    if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const to = el.offsetHeight, ease = 'cubic-bezier(.3, .7, .2, 1)', dx = m === 'create' ? 22 : -22;
+    el.style.overflow = 'hidden';
+    el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 340, easing: ease }).onfinish = () => { el.style.overflow = ''; };
+    body.current?.animate([{ opacity: 0, transform: `translateX(${dx}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
+  };
+  const ready = !creating || (passwordOk(pw, email) && pw === pw2);
   const submit = async () => {
     if (!sb) return;
-    if (creating && pw !== pw2) { setMsg('The two passwords do not match.'); return; }
+    if (!ready) { setMsg('Finish the checklist first.'); return; }
     setBusy(true); setMsg('');
     const { data, error } = creating ? await sb.auth.signUp({ email, password: pw }) : await sb.auth.signInWithPassword({ email, password: pw });
     setBusy(false); setPw(''); setPw2('');
@@ -50,14 +81,15 @@ export default function SignIn() {
 
   return (
     <div className="sign">
-      <div className="card rise d1" data-safe="text">
+      <div ref={card} className="card rise d1" data-safe="text">
         {!hasBackend && <p style={{ margin: 0, lineHeight: 1.5 }}>Accounts are not configured on this copy. Everything except saved reports and share links works as a guest.</p>}
-        {hasBackend && !user && <form onSubmit={(e) => { e.preventDefault(); void submit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {hasBackend && !user && <form ref={body} onSubmit={(e) => { e.preventDefault(); void submit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 className="disp h2" style={{ margin: 0 }}>{creating ? 'Create an account' : 'Log in'}</h1>
           <label className="sm">Email<input className="cr-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <Password label="Password" value={pw} onChange={setPw} auto={creating ? 'new-password' : 'current-password'} placeholder={creating ? 'At least 10 characters' : undefined} />
+          <Password label="Password" value={pw} onChange={setPw} auto={creating ? 'new-password' : 'current-password'} placeholder={creating ? 'At least 12 characters' : undefined} describedBy={creating ? 'pw-rules' : undefined} />
           {creating && <Password label="Confirm password" value={pw2} onChange={setPw2} auto="new-password" />}
-          <Scan type="submit" disabled={busy}>{creating ? 'Create account' : 'Log in'}</Scan>
+          {creating && <Checklist pw={pw} pw2={pw2} email={email} />}
+          <Scan type="submit" disabled={busy || !ready}>{creating ? 'Create account' : 'Log in'}</Scan>
           <p style={{ margin: 0, fontSize: 15, textAlign: 'center' }}>
             {creating ? 'Already have an account? ' : "Don't have an account? "}
             <button type="button" className="cr-btn ac" style={{ textDecoration: 'underline', fontWeight: 600 }} onClick={() => switchTo(creating ? 'login' : 'create')}>{creating ? 'Log in' : 'Create one'}</button>

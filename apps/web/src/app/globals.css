@@ -72,7 +72,24 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .cr-input[aria-invalid="true"] { border-color: var(--ac) }
 .rise { animation: crrise .9s cubic-bezier(.2, .7, .2, 1) both }
 .d1 { animation-delay: .22s } .d2 { animation-delay: .32s } .d3 { animation-delay: .42s }
-.flip { animation: crrise .45s cubic-bezier(.2, .7, .2, 1) both }
+.flip { animation: crfade .3s ease both }
+@keyframes crfade { from { opacity: 0 } to { opacity: 1 } }
+.panel { min-height: calc(100vh - 150px); transition: opacity .13s ease }
+.panel.leaving { opacity: 0 }
+.panel.entering { animation: panelin .32s cubic-bezier(.2, .7, .2, 1) both }
+@keyframes panelin { from { opacity: 0; transform: translateX(var(--dx, 0)) } to { opacity: 1; transform: none } }
+.ink-wrap { position: relative }
+.ink { position: absolute; left: 0; top: 0; height: 2px; background: var(--ac); pointer-events: none; transition: transform .32s cubic-bezier(.3, .7, .2, 1), width .32s cubic-bezier(.3, .7, .2, 1) }
+.ink-wrap .tab, .ink-wrap .under { border-bottom-color: transparent !important }
+.card h1 { font-size: clamp(30px, 3.4vw, 42px) }
+.pwc { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 14px; background: var(--bg); border: 1px solid var(--line); font-size: 14px }
+.pwc li { display: flex; align-items: center; gap: 9px; color: var(--muted); transition: color .2s ease }
+.pwc li.ok { color: var(--fg) }
+.pwc svg { flex: none; width: 15px; height: 15px; fill: none; stroke: var(--bar); stroke-width: 1.5; transition: stroke .2s ease }
+.pwc li.ok svg { stroke: var(--ac) }
+.pwc .tick { stroke-width: 2; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .24s cubic-bezier(.3, .7, .2, 1) }
+.pwc li.ok .tick { stroke-dashoffset: 0 }
+.pw-title { margin: 0 0 6px; font-family: var(--mono); font-size: var(--cap); color: var(--small) }
 @keyframes crrise { from { opacity: 0; transform: translateY(36px) } to { opacity: 1; transform: none } }
 
 .head { position: relative; z-index: 6; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 40px; font-family: var(--font-mono), monospace; font-size: 13px; background: var(--panel); border-bottom: 1px solid var(--line); box-shadow: inset 0 -2px 0 -1px var(--ac) }
@@ -89,7 +106,7 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .h3 { margin: 0; font-size: clamp(26px, 3vw, 38px) }
 .veil { background: var(--veil) }
 .solid { background: var(--panel) }
-section { content-visibility: auto; contain-intrinsic-size: auto 400px }
+.hero + section { content-visibility: auto; contain-intrinsic-size: auto 900px }
 .rule { border-bottom: 1px solid var(--line) }
 .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; font-family: var(--font-mono), monospace; font-size: 13px; position: sticky; top: 0; z-index: 4; padding: 8px 0; background: var(--panel); border-bottom: 1px solid var(--line) }
 .tabs .levels { margin-left: auto }
@@ -175,7 +192,7 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
 .sign { min-height: calc(100vh - 90px); display: flex; align-items: center; justify-content: center; padding: 40px 16px 72px; box-sizing: border-box }
-.card { width: min(440px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 30px 32px; background: var(--panel); border: 1px solid var(--line) }
+.card { width: min(560px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 30px 32px; background: var(--panel); border: 1px solid var(--line) }
 .pw { position: relative; display: block; margin-top: 6px }
 .pw .cr-input { margin-top: 0; padding-right: 46px }
 .eye { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 36px; height: 36px; display: grid; place-items: center; background: none; border: 0; color: var(--muted); padding: 0; transition: color .2s ease }
@@ -203,7 +220,8 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .pk { grid-template-columns: 54px 120px 120px 60px minmax(160px, 1fr) } .pk .hide-sm { display: none }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rise, .flip, .pk-detail { animation: none }
+  .rise, .flip, .pk-detail, .panel.entering { animation: none }
+  .ink, .panel { transition: none }
   .pk { transition: none }
   .scan:hover .line { animation: none; opacity: 0 }
   .cr-root, .cr-root * { transition: none }

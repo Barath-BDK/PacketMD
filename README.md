@@ -30,7 +30,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 - Animated attack stories built only from capture data, each with a real-life analogy, plus "Play whole incident"
 
 **Also included**
-- Verify Fix: open a second capture and get RESOLVED, STILL PRESENT or NEW per finding
+- Verify Fix: open a second capture and get RESOLVED, STILL PRESENT or NEW per finding. Try it with `samples/fix-demo-1-attack.pcap` then `samples/fix-demo-2-after-fix.pcap`
 - Causal links between symptoms and root causes, blast radius, and a fix-first order
 - Beginner, Technical and Analyst reading levels
 - Timeline you can adjust: packets or bytes, level of detail, drag to zoom, highlight one problem
@@ -110,6 +110,7 @@ CLI (Node): same engine, packages/core
 - **Sandboxed Worker.** It is served with `connect-src 'none'`, and the Security page proves this by having the Worker try the network. The browser console shows that blocked request as an error: it is expected.
 - **Inert rendering.** Packet-derived text passes `safeText()` and renders as React text nodes. A lint rule bans `dangerouslySetInnerHTML`. Exports neutralise formula injection.
 - **Site headers.** Per-request nonce CSP with no `unsafe-eval` in production, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS and COOP.
+- **Passwords.** New accounts need 12 or more characters with mixed case, a number and a symbol, and cannot use runs, common words or the email name. The rule is in `packages/core/src/password.ts` and is checked live as you type. The same minimums must also be set in Supabase Auth, because a browser check alone can be bypassed.
 - **Backend.** RLS on every table, owner-only access, no raw payload columns and no client-side way to change a role. Guests have no direct table access. The share function validates with zod, caps body size and rate-limits. The Supabase security advisor reports no issues.
 - **No hardcoded secrets.** Only `.env.example` is tracked, and the anon key is public by design. Gitleaks is part of the CI workflow, kept at `docs/ci.yml` until it is enabled under `.github/workflows/`.
 - **No LLM** is called on user data. Explanations come from deterministic templates.
@@ -124,7 +125,7 @@ update public.profiles set role = 'admin' where id = '<user id>';
 
 ## Measured accuracy
 
-From `pnpm accuracy` on 25 lab captures, 6 of them clean or benign look-alikes:
+From `pnpm accuracy` on 27 lab captures, 7 of them clean or benign look-alikes:
 
 | Precision | Recall | False-alarm rate |
 |---|---|---|

@@ -85,7 +85,7 @@ export interface Evidence {
 export interface FixStep { title: string; why: string; windows?: string; linux?: string; router?: string }
 export interface StoryStep { key: string; title: string; caption: string; technical: string; analyst: string; packets: number[]; t?: number; edges: { from: string; to: string; label: string; bad?: boolean }[] }
 
-export interface LevelText { what: string; why: string; rule: string; sure: string }
+export interface LevelText { what: string; why: string; rule: string; sure: string; fields?: string }
 
 export interface Finding {
   id: string;           // F1, F2... stable within a report

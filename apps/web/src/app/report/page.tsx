@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { diffReports, type Report } from '@packetmd/core';
 import { runFile, useCase } from '@/lib/engine';
 import { hasBackend, saveReport, shareReport } from '@/lib/backend';
 import { Hv, Scan, useShell } from '@/shell/Shell';
-import { Copy, Differential, exportJson, exportMd, FindingCard, FixPlan, Lane, Levels, Proof } from '@/report/parts';
+import { Copy, Differential, exportJson, exportMd, FindingCard, FixPlan, Lane, Levels, Proof, useInk } from '@/report/parts';
 import { StoryPlayer } from '@/report/Story';
 import { Investigator } from '@/report/Investigator';
 import { TimeChart } from '@/report/TimeChart';
@@ -28,7 +28,8 @@ function Verdict({ r }: { r: Report }) {
             <span><Lane l={l} />{b && <span className="sm" style={{ display: 'block', marginTop: 4 }}>{LANE_TEXT[l]}</span>}</span>
             <span>
               <span style={{ fontWeight: 600 }}>{f.title}</span>{f.causedBy ? <span className="muted"> (side effect)</span> : null}
-              <span className={c.level === 'analyst' ? 'dat' : 'muted'} style={{ display: 'block', marginTop: 4, fontSize: c.level === 'analyst' ? undefined : 15, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{f.levels[c.level].what}</span>
+              <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 15, lineHeight: 1.45, overflowWrap: 'anywhere' }}>{c.level === 'analyst' ? f.technical : f.levels[c.level].what}</span>
+              {c.level === 'analyst' && f.levels.analyst.fields && <span className="dat" style={{ display: 'block', marginTop: 4, overflowWrap: 'anywhere' }}>{f.levels.analyst.fields}</span>}
             </span>
             <span className="sm">{f.confidence} confidence</span>
           </button>
@@ -98,6 +99,8 @@ function Activity({ r }: { r: Report }) {
 
 function VerifyFix({ r }: { r: Report }) {
   const input = useRef<HTMLInputElement>(null);
+  // Only captures with a true before and after pair offer the one-click comparison.
+  const after = ({ 'fix-demo-1-attack.pcap': 'fix-demo-2-after-fix.pcap', 'mixed-incident.pcap': 'mixed-incident-after-fix.pcap' } as Record<string, string>)[r.defense.fileName];
   const [rows, setRows] = useState<ReturnType<typeof diffReports> | null>(null);
   const [msg, setMsg] = useState('');
   const check = async (f: File) => {
@@ -110,7 +113,7 @@ function VerifyFix({ r }: { r: Report }) {
       <p style={{ marginTop: 0, maxWidth: '60ch', lineHeight: 1.5 }}>Applied the fixes? Capture the same spot again and open it here. Each finding is marked as resolved, still present or new.</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
         <Scan tight onClick={() => input.current?.click()}>Open the after capture</Scan>
-        <Hv onClick={async () => { const b = await fetch('/samples/mixed-incident-after-fix.pcap').then((x) => x.blob()); void check(new File([b], 'mixed-incident-after-fix.pcap')); }}>Use the lab after-fix sample</Hv>
+        {after && <Hv onClick={async () => { const b = await fetch(`/samples/${after}`).then((x) => x.blob()); void check(new File([b], after)); }}>Use the lab after-fix sample</Hv>}
       </div>
       <input ref={input} type="file" accept=".pcap,.pcapng" hidden aria-label="Choose the second capture" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void check(f); }} />
       {msg && <p className="sm" role="status">{msg}</p>}
@@ -121,14 +124,26 @@ function VerifyFix({ r }: { r: Report }) {
 
 export default function ReportPage() {
   const c = useCase(), { go } = useShell(), r = c.report;
-  const tabs = useRef<HTMLDivElement>(null);
-  // Every section opens with its tab bar at the top, so its content fits the screen.
+  const { jump } = useShell();
+  const anchor = useRef<HTMLDivElement>(null);
+  const { box, ink } = useInk(c.tab);
+  const [shown, setShown] = useState(c.tab);
+  const [leaving, setLeaving] = useState(false);
+  const dir = useRef(1), mounted = useRef(false);
+  // The old section fades out, the page moves while nothing is visible, then the new one eases in.
   useEffect(() => {
-    const el = tabs.current, page = el?.closest('.page');
-    if (!el || !page) return;
-    if (c.tab === 'verdict') return;
-    page.scrollTo({ top: el.parentElement!.offsetTop + el.offsetTop });
-  }, [c.tab]);
+    if (c.tab === shown) return;
+    const order = TABS.map(([id]) => id);
+    dir.current = order.indexOf(c.tab) >= order.indexOf(shown) ? 1 : -1;
+    setLeaving(true);
+    const id = setTimeout(() => { setShown(c.tab); setLeaving(false); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 130);
+    return () => clearTimeout(id);
+  }, [c.tab, shown]);
+  // Runs after the new section is in the DOM, so the scroll height is the real one.
+  useLayoutEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    jump(shown === 'verdict' ? null : anchor.current);
+  }, [shown, jump]);
   if (!r) return (
     <div className="center"><h1 className="disp h2 rise d1">No capture open yet.</h1>
       <p className="muted rise d2" style={{ fontSize: 17 }}>Open a file or a lab sample first. Reports live only in this tab.</p>
@@ -141,22 +156,23 @@ export default function ReportPage() {
       <p className="sm" style={{ margin: '0 0 6px' }}>{r.defense.fileName}, SHA-256 {r.defense.sha256.slice(0, 16)}...</p>
       <h1 className="disp report-title rise d1">{head}. {rest.length > 0 && <span className="ac">{rest.join('. ')}</span>}</h1>
       <div>
-        <div style={{ height: 12 }} />
-        <div ref={tabs} role="tablist" aria-label="Report sections" className="tabs">
+        <div ref={anchor} style={{ height: 12 }} />
+        <div ref={box} role="tablist" aria-label="Report sections" className="tabs ink-wrap">
+          <i ref={ink as React.RefObject<HTMLElement>} className="ink" />
           {TABS.map(([id, label]) => <Hv key={id} role="tab" className="tab" aria-selected={c.tab === id} onClick={() => c.setTab(id)}>{label}{id === 'findings' && n ? ` ${n}` : ''}</Hv>)}
           <Levels />
         </div>
-        <div className="flip" key={c.tab} role="tabpanel" style={{ paddingTop: 16 }}>
-          {c.tab === 'verdict' && <Verdict r={r} />}
-          {c.tab === 'findings' && (r.findings.length ? r.findings.map((f) => <FindingCard key={f.id} f={f} r={r} />) : <p>No findings. Every detector ran and found nothing to report.</p>)}
-          {c.tab === 'differential' && <Differential r={r} />}
-          {c.tab === 'story' && <StoryPlayer r={r} />}
-          {c.tab === 'fix' && <FixPlan r={r} />}
-          {c.tab === 'verify' && <VerifyFix r={r} />}
-          {c.tab === 'timeline' && <Timeline r={r} />}
-          {c.tab === 'hosts' && <Hosts r={r} />}
-          {c.tab === 'activity' && <Activity r={r} />}
-          {c.tab === 'investigator' && <Investigator r={r} />}
+        <div className={`panel ${leaving ? 'leaving' : 'entering'}`} key={shown} role="tabpanel" style={{ paddingTop: 16, '--dx': `${dir.current * 16}px` } as React.CSSProperties}>
+          {shown === 'verdict' && <Verdict r={r} />}
+          {shown === 'findings' && (r.findings.length ? r.findings.map((f) => <FindingCard key={f.id} f={f} r={r} />) : <p>No findings. Every detector ran and found nothing to report.</p>)}
+          {shown === 'differential' && <Differential r={r} />}
+          {shown === 'story' && <StoryPlayer r={r} />}
+          {shown === 'fix' && <FixPlan r={r} />}
+          {shown === 'verify' && <VerifyFix r={r} />}
+          {shown === 'timeline' && <Timeline r={r} />}
+          {shown === 'hosts' && <Hosts r={r} />}
+          {shown === 'activity' && <Activity r={r} />}
+          {shown === 'investigator' && <Investigator r={r} />}
         </div>
       </div>
     </div>

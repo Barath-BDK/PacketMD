@@ -10,4 +10,6 @@ export { diffReports } from './verify';
 export { dissect, followStream, toMarkdown, locator } from './inspect';
 export { parseFilter, FilterError } from './filter';
 export { HYPOTHESES } from './verdict/catalog';
+export { checkPassword, passwordOk, PASSWORD_MAX, PASSWORD_MIN } from './password';
+export type { PasswordRule } from './password';
 export { TEMPLATES } from './explain/templates';

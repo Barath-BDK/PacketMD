@@ -3,6 +3,7 @@ import type { Evidence, Finding, StoryStep } from '../types';
 import type { Case } from '../verdict/engine';
 import { HYPOTHESES } from '../verdict/catalog';
 import { nextCapture, TEMPLATES } from './templates';
+import { MECHANISM } from './analyst';
 
 const ROOTS = ['arp-spoof', 'rogue-dhcp-attack', 'rogue-dhcp-misconfig', 'dns-hijack', 'mtu-blackhole', 'server-outage', 'syn-flood', 'duplicate-ip'];
 const SYMPTOMS = ['tcp-loss', 'dns-failure', 'high-latency', 'tcp-reset', 'syn-unanswered'];
@@ -17,12 +18,25 @@ function sureWords(p: number) { return p > 0.95 ? 'almost certain' : p > 0.75 ? 
 
 function levelsOf(c: Case, f: Finding): Finding['levels'] {
   const [a, b] = c.hypotheses;
-  const led = c.signals.map((s) => `${s.id}: ${Object.entries(s.weights).map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(', ')}`).join('; ');
-  const score = c.hypotheses.map((h) => `${h.id} score=${h.score} p=${h.prob.toFixed(4)}`).join('; ');
+  const weighed = [...c.signals].sort((x, y) => (y.weights[a!.id] ?? 0) - (x.weights[a!.id] ?? 0));
+  const led = weighed.map((s) => {
+    const w = s.weights[a!.id];
+    return `${s.label} ${w ? `This moved ${a!.title} by ${w > 0 ? '+' : ''}${w}.` : `It did not count towards ${a!.title}.`}`;
+  }).join(' ');
+  const score = c.hypotheses.map((h) => `${h.title} scored ${h.score} (probability ${pct(h.prob)})`).join(', ');
+  const first = f.evidence[0];
+  const when = `Activity runs from ${new Date(f.t0 * 1000).toISOString()} to ${new Date(f.t1 * 1000).toISOString()} (${(f.t1 - f.t0).toFixed(2)} s), involves ${f.hosts.length} host${f.hosts.length === 1 ? '' : 's'} and is backed by ${f.evidence.length} proof packets${first ? `, the first being packet ${first.no} at file offset 0x${first.dataOffset.toString(16)}` : ''}.`;
+  const checks = c.benign.length ? ` Innocent explanations tested: ${c.benign.map((x) => `${x.label} (${x.matched ? 'matched' : 'ruled out'})`).join('; ')}.` : '';
   return {
     beginner: { what: f.plain, why: f.cause, rule: f.whyNotTheOther, sure: `We think this is ${sureWords(a!.prob)}.${b ? ` The next best idea, "${b.title.toLowerCase()}", is ${sureWords(b.prob)}.` : ''}` },
     technical: { what: f.technical, why: `${f.cause} ${c.signals.slice(0, 3).map((s) => s.label).join(' ')}`, rule: `${f.whyNotTheOther} ${a!.title} ${pct(a!.prob)}${b ? ` against ${b.title} ${pct(b.prob)}` : ''}.`, sure: `Margin ${Math.round(c.margin * 100)} points across ${c.signals.length} signals.` },
-    analyst: { what: f.analyst, why: led, rule: score, sure: `margin=${c.margin} lane=${c.lane} benign_checks=${c.benign.length} matched=${c.benign.filter((x) => x.matched).length}` },
+    analyst: {
+      what: `${MECHANISM[f.hypothesis]} In this capture: ${f.technical} ${when}`,
+      why: `${f.cause} Evidence, strongest first. ${led}`,
+      rule: `${f.whyNotTheOther} Final scores: ${score}. Scores are summed log-likelihood weights passed through a softmax to give probabilities.`,
+      sure: `The gap between first and second place is ${pct(c.margin)}; a verdict needs at least 20%, and an attack also needs a majority of the probability with no innocent explanation matched. This case was filed as ${c.lane}.${checks}`,
+      fields: f.analyst,
+    },
   };
 }
 
@@ -37,7 +51,7 @@ function story(ctx: Ctx, c: Case, f: Finding): StoryStep[] {
   const t = TEMPLATES[f.hypothesis]!, facts = c.facts;
   const lines = (nos: number[]) => nos.slice(0, 5).map((n) => `#${n} ${ctx.get(n).proto} ${ctx.get(n).info}`).join(' | ');
   const edge = (pn: number, bad = true) => { const p = ctx.get(pn); return { from: p.src ?? p.srcMac ?? '?', to: p.dst ?? p.dstMac ?? '?', label: p.proto, bad }; };
-  const make = (key: string, title: string, caption: string, technical: string, packets: number[], bad = true): StoryStep => ({ key, title, caption, technical, analyst: lines(packets) || technical, packets, edges: packets.slice(0, 6).map((n) => edge(n, bad)) });
+  const make = (key: string, title: string, caption: string, technical: string, packets: number[], bad = true): StoryStep => ({ key, title, caption, technical, analyst: [caption, technical, packets.length ? `Packets: ${lines(packets)}.` : ''].filter(Boolean).join(' '), packets, edges: packets.slice(0, 6).map((n) => edge(n, bad)) });
   const forH = (h: string) => c.signals.filter((s) => (s.weights[h] ?? 0) > 0).sort((x, y) => (y.weights[h] ?? 0) - (x.weights[h] ?? 0));
   const seen = f.evidence.map((e) => e.no).slice(0, 8);
 
@@ -71,13 +85,13 @@ function story(ctx: Ctx, c: Case, f: Finding): StoryStep[] {
   const first = startNo ? evidenceOf(ctx, [startNo])[0] : undefined;
   const before = ctx.flows.filter((x) => x.t0 < c.t0 && (c.hosts.includes(x.a) || c.hosts.includes(x.b))).slice(0, 4);
   const steps: StoryStep[] = [
-    { key: 'before', title: 'Normal before it started', caption: before.length ? `${before.length} ordinary conversations were running between these hosts.` : 'Not visible in this capture: it starts when the problem is already underway.', technical: before.map((x) => `${x.a} to ${x.b}:${x.pb}`).join('; '), analyst: lines(before.map((x) => x.first)), packets: before.map((x) => x.first), edges: before.map((x) => ({ from: x.a, to: x.b, label: `${x.proto} ${x.pb}` })) },
+    { key: 'before', title: 'Normal before it started', caption: before.length ? `${before.length} ordinary conversations were running between these hosts.` : 'Not visible in this capture: it starts when the problem is already underway.', technical: before.map((x) => `${x.a} to ${x.b}:${x.pb}`).join('; '), analyst: before.length ? `These conversations set the normal pattern: ${before.map((x) => `${x.a} to ${x.b}:${x.pb}`).join('; ')}. Packets: ${lines(before.map((x) => x.first))}.` : 'The capture begins after the problem started, so there is no clean baseline in this file.', packets: before.map((x) => x.first), edges: before.map((x) => ({ from: x.a, to: x.b, label: `${x.proto} ${x.pb}` })) },
   ];
-  if (first) steps.push({ key: 'start', title: 'Where it started', caption: `Packet ${first.no} is the first sign: ${first.info}.`, technical: `File offset 0x${first.recordOffset.toString(16)}, capture time ${new Date(first.ts * 1000).toISOString()}`, analyst: lines([first.no]), packets: [first.no], t: first.ts, edges: [edge(first.no)] });
-  steps.push({ key: 'how', title: 'How it was done', caption: f.plain, technical: f.technical, analyst: f.analyst, packets: evNos.slice(0, 8), edges: evNos.slice(0, 6).map((n) => edge(n)) });
-  steps.push({ key: 'affected', title: 'What is affected', caption: f.blast.length ? `Affected: ${f.blast.join(', ')}.` : 'Not visible in this capture.', technical: `${f.blast.length} hosts in the blast radius`, analyst: f.blast.join(', '), packets: evNos.slice(0, 3), edges: [] });
-  steps.push({ key: 'evidence', title: 'Evidence', caption: `${f.signals.length} signals point here, tied to ${f.evidence.length} packets.`, technical: f.signals.map((s) => s.label).join(' '), analyst: lines(evNos), packets: evNos.slice(0, 12), edges: [] });
-  steps.push({ key: 'fix', title: 'How to fix it', caption: f.fixSteps.map((s) => s.title).join('. ') || 'No fix needed.', technical: t.verify(facts), analyst: f.fixSteps.map((s) => s.linux ?? s.router ?? s.windows ?? s.title).join(' | '), packets: [], edges: [] });
+  if (first) steps.push({ key: 'start', title: 'Where it started', caption: `Packet ${first.no} is the first sign: ${first.info}.`, technical: `File offset 0x${first.recordOffset.toString(16)}, capture time ${new Date(first.ts * 1000).toISOString()}`, analyst: `The first packet behind the strongest signal is number ${first.no}, a ${first.proto} frame at file offset 0x${first.dataOffset.toString(16)}, captured ${new Date(first.ts * 1000).toISOString()}: ${first.info}.`, packets: [first.no], t: first.ts, edges: [edge(first.no)] });
+  steps.push({ key: 'how', title: 'How it was done', caption: f.plain, technical: f.technical, analyst: f.levels.analyst.what, packets: evNos.slice(0, 8), edges: evNos.slice(0, 6).map((n) => edge(n)) });
+  steps.push({ key: 'affected', title: 'What is affected', caption: f.blast.length ? `Affected: ${f.blast.join(', ')}.` : 'Not visible in this capture.', technical: `${f.blast.length} hosts in the blast radius`, analyst: `${f.blast.length} hosts are in scope: ${f.blast.join(', ')}. A host is included when it appears in the evidence, or in a symptom traced back to this root cause.`, packets: evNos.slice(0, 3), edges: [] });
+  steps.push({ key: 'evidence', title: 'Evidence', caption: `${f.signals.length} signals point here, tied to ${f.evidence.length} packets.`, technical: f.signals.map((s) => s.label).join(' '), analyst: f.levels.analyst.why, packets: evNos.slice(0, 12), edges: [] });
+  steps.push({ key: 'fix', title: 'How to fix it', caption: f.fixSteps.map((s) => s.title).join('. ') || 'No fix needed.', technical: t.verify(facts), analyst: `${f.fixSteps.map((s) => `${s.title}: ${s.why}`).join(' ')} Confirm with: ${t.verify(facts)}`, packets: [], edges: [] });
   return steps;
 }
 
