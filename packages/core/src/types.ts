@@ -106,6 +106,7 @@ export interface Finding {
   cause: string; whyNotTheOther: string; analogy: string;
   wireshark: string; bpf: string;
   fixSteps: FixStep[]; verifyBy: string;
+  fixIf?: string;       // the fix only applies if the finding turns out to be this
   nextCapture?: string;
   evidence: Evidence[];
   story: StoryStep[];

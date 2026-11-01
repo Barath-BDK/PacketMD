@@ -105,8 +105,9 @@ export function FixPlan({ r }: { r: Report }) {
   const c = useCase();
   const [os, setOs] = useState<'windows' | 'linux' | 'router'>('windows');
   const [done, setDone] = useState<Record<string, boolean>>({});
-  const todo = r.findings.filter((f) => f.fixSteps.length);
-  if (!todo.length) return <p>Nothing to fix in this capture.</p>;
+  const todo = r.findings.filter((f) => f.fixSteps.length), open = r.findings.filter((f) => f.lane === 'INCONCLUSIVE' && !f.fixSteps.length);
+  const unsettled = open.map((f) => <p key={f.id} className="veil" style={{ padding: 24, marginTop: 0, lineHeight: 1.5 }}><span className="ac">Inconclusive: </span>{f.title}. There is no fix yet because the evidence does not settle it.{f.nextCapture ? ` ${f.nextCapture}` : ''}</p>);
+  if (!todo.length) return open.length ? <>{unsettled}</> : <p>Nothing to fix in this capture.</p>;
   return (
     <div>
       {c.archived && <p className="muted" style={{ lineHeight: 1.5, marginTop: 0 }}>Saved reports replace addresses with labels such as host-3, so swap in the real values before running these commands, or open the original capture for exact ones.</p>}
@@ -116,6 +117,7 @@ export function FixPlan({ r }: { r: Report }) {
       {todo.map((f, n) => (
         <section key={f.id} className="veil" style={{ padding: 24, marginBottom: 24 }}>
           <h3 className="disp h3">{n + 1}. {f.title}</h3>
+          {f.fixIf && <p style={{ lineHeight: 1.5, marginBottom: 0 }}><span className="ac">Inconclusive. </span>Only do these if this turns out to be {f.fixIf}. It may be harmless, so check first.{f.nextCapture ? ` ${f.nextCapture}` : ''}</p>}
           <ol style={{ listStyle: 'none', padding: 0, margin: '12px 0' }}>
             {f.fixSteps.map((s, i) => {
               const k = `${f.id}.${i}`, cmd = s[os];
@@ -136,6 +138,7 @@ export function FixPlan({ r }: { r: Report }) {
           {c.level === 'analyst' && f.wireshark && <p className="dat" style={{ marginBottom: 0 }}>Re-check with: {f.wireshark} <Copy text={f.wireshark} /></p>}
         </section>
       ))}
+      {unsettled}
     </div>
   );
 }

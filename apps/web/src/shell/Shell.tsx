@@ -3,11 +3,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePathname, useRouter } from 'next/navigation';
 import Lenis from 'lenis';
 import { arrival, sb } from '@/lib/backend';
-import { BGS, DIMS, Stage, TRANSITIONS, type Look, type StageApi } from './Stage';
+import { Stage, type Look, type StageApi } from './Stage';
 
-const VERSIONS = ['Original', 'Clearing', 'Tideline', 'Pools', 'Halo'];
-const HOVERS = ['Trace', 'Decode', 'Brackets', 'Flood'];
-const SMALLS = ['Grey', 'Ink', 'Tint', 'Large'];
+// The chosen look: Clearing, Match, Trace, Ink, Topo, Normal.
+const LOOK: Look = { version: 1, transition: 0, hover: 0, small: 1, bg: 1, dim: 0 };
 const STORE = 'packetmd.look';
 
 const Ctx = createContext<{ go(href: string): void; jump(el: HTMLElement | null): void }>({ go() {}, jump() {} });
@@ -37,15 +36,6 @@ export function Scan({ children, tight, ...rest }: React.ButtonHTMLAttributes<HT
   );
 }
 
-function Opts({ label, items, value, pick }: { label: string; items: string[]; value: number; pick(i: number): void }) {
-  return (
-    <div role="group" aria-label={label} className="g">
-      <span className="sm">{label}</span>
-      {items.map((x, i) => <button type="button" key={x} className="cr-btn st" aria-pressed={i === value} onClick={() => pick(i)} style={{ padding: '4px 0', borderBottom: `1px solid ${i === value ? 'var(--ac)' : 'transparent'}`, color: i === value ? 'var(--fg)' : 'var(--small)' }}>{x}</button>)}
-    </div>
-  );
-}
-
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(), router = useRouter();
   const root = useRef<HTMLDivElement>(null), api = useRef<StageApi | null>(null), scroller = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
@@ -63,22 +53,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
     else if (/access_token=/.test(arrival)) history.replaceState(null, '', location.pathname + location.search);
   }, [router]);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
-  const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });
-  const [showLook, setShowLook] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'out' | 'pre'>('idle');
 
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem(STORE) ?? 'null');
-      if (s?.look) setLook((l) => ({ ...l, ...s.look }));
       if (s?.mode === 'light' || s?.mode === 'dark') setMode(s.mode);
     } catch { /* blocked storage just means defaults */ }
   }, []);
   useEffect(() => {
     document.documentElement.dataset.mode = mode;
-    document.documentElement.dataset.small = String(look.small);
-    try { localStorage.setItem(STORE, JSON.stringify({ look, mode })); } catch { /* defaults next time */ }
-  }, [look, mode]);
+    try { localStorage.setItem(STORE, JSON.stringify({ mode })); } catch { /* defaults next time */ }
+  }, [mode]);
+  // Log in keeps the grey small text it always had.
+  useEffect(() => { document.documentElement.dataset.small = sceneOf(path) === 'signin' ? '0' : String(LOOK.small); }, [path]);
 
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !scroller.current) return;
@@ -98,7 +86,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (lenis) { lenis.resize(); lenis.scrollTo(y, { immediate: true, force: true }); } else page.scrollTop = y;
   }, []);
 
-  useEffect(() => { api.current?.scene(sceneOf(path)); jump(null); }, [path, jump]);
+  // Battery saver skips the transition, so hiding the old page cannot depend on it.
+  const waiting = useRef(0), slow = useRef(0);
+  const show = useCallback(() => {
+    clearTimeout(waiting.current); clearTimeout(slow.current);
+    setPhase((p) => (p === 'out' ? 'pre' : p));
+    requestAnimationFrame(() => requestAnimationFrame(() => setPhase((p) => (p === 'pre' ? 'idle' : p))));
+  }, []);
+  useEffect(() => { api.current?.scene(sceneOf(path)); jump(null); show(); }, [path, jump, show]);
 
   const here = useRef(path), dest = useRef(path);
   here.current = path;
@@ -114,9 +109,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
     dest.current = href;
     router.prefetch(href);
     api.current?.scene(sceneOf(href.split('?')[0]!));
-    const push = () => router.push(dest.current);
+    const push = () => {
+      router.push(dest.current);
+      clearTimeout(waiting.current); clearTimeout(slow.current);
+      // A quick page never fades. A slow one is hidden rather than left showing the page being left.
+      waiting.current = window.setTimeout(() => { if (!landed()) setPhase('out'); }, 120);
+      slow.current = window.setTimeout(show, 8000);
+    };
     if (api.current) api.current.run(mode, push, landed); else push();
-  }, [landed, mode, path, router]);
+  }, [landed, mode, path, router, show]);
 
   const toggle = () => { const m = mode === 'dark' ? 'light' : 'dark'; api.current ? api.current.run(m, () => setMode(m)) : setMode(m); };
   const value = useMemo(() => ({ go, jump }), [go, jump]);
@@ -126,8 +127,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <Ctx.Provider value={value}>
-      <div ref={root} className={`cr-root hs-${HOVERS[look.hover]!.toLowerCase()}`}>
-        <Stage root={root} look={look} mode={mode} page={page} api={api} setPhase={setPhase} />
+      <div ref={root} className="cr-root hs-trace">
+        <Stage root={root} look={LOOK} mode={mode} page={page} api={api} setPhase={setPhase} />
         <header className="head">
           <button type="button" className="cr-btn mark" data-safe="ui" onClick={() => go('/')} aria-label="PacketMD home"><svg className="logo" viewBox="0 0 32 32" aria-hidden="true"><path className="logo-c" d="M3 10V3h7M22 3h7v7M29 22v7h-7M10 29H3v-7" /><path className="logo-p" d="M6 17h5.5l2.5-7.5 4 14 2.6-6.5H26" /></svg><span className="word">packet<span className="ac">MD</span><span className="cur" /></span></button>
           <div className="nav" data-safe="ui">
@@ -143,17 +144,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <div ref={scroller} className="page" style={{ transition: 'opacity .32s ease, transform .55s cubic-bezier(.3,.7,.2,1), filter .32s ease', ...fx }}>
           <div ref={content}>{children}</div>
-        </div>
-        <div className="strip">
-          {showLook && <>
-            <Opts label="Version" items={VERSIONS} value={look.version} pick={(version) => setLook({ ...look, version })} />
-            <Opts label="Transition" items={TRANSITIONS.map((t) => t.label)} value={look.transition} pick={(transition) => setLook({ ...look, transition })} />
-            <Opts label="Hover" items={HOVERS} value={look.hover} pick={(hover) => setLook({ ...look, hover })} />
-            <Opts label="Small text" items={SMALLS} value={look.small} pick={(small) => setLook({ ...look, small })} />
-            <Opts label="Background" items={BGS.map((b) => b.label)} value={BGS.findIndex((b) => b.id === look.bg)} pick={(i) => setLook({ ...look, bg: BGS[i]!.id })} />
-            <Opts label="Brightness" items={DIMS.map((d) => d.label)} value={look.dim} pick={(dim) => setLook({ ...look, dim })} />
-          </>}
-          <div className="g"><button type="button" className="cr-btn st" aria-expanded={showLook} onClick={() => setShowLook(!showLook)} style={{ padding: '4px 0', color: 'var(--small)' }}>{showLook ? 'Hide look' : 'Look'}</button></div>
         </div>
       </div>
     </Ctx.Provider>

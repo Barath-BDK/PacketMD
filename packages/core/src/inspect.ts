@@ -37,6 +37,7 @@ export function toMarkdown(r: Report) {
   for (const f of r.findings) {
     const tech = techniqueOf(f.hypothesis);
     lines.push(`## ${f.id} ${neutralize(f.title)} (${f.lane}, ${f.confidence})`, '', ...(tech ? [`MITRE ATT&CK: ${tech.id} ${tech.name}`, ''] : []), neutralize(f.plain), '', `Cause: ${neutralize(f.cause)}`, '', `Evidence packets: ${f.evidence.map((e) => e.no).slice(0, 20).join(', ')}`, '');
+    if (f.fixSteps.length && f.fixIf) lines.push(`Inconclusive. Only do these if this turns out to be ${neutralize(f.fixIf)}.`, '');
     f.fixSteps.forEach((s, i) => lines.push(`${i + 1}. ${neutralize(s.title)}`));
     lines.push('');
   }

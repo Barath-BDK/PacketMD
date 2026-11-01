@@ -1,4 +1,5 @@
 'use client';
+import { OpenCapture } from '@/report/OpenCapture';
 import { useEffect, useState } from 'react';
 import { deleteReport, fullReport, savedReports, sb, type SavedReport } from '@/lib/backend';
 import { useCase } from '@/lib/engine';
@@ -76,7 +77,7 @@ export default function Investigations() {
     <div className="center">
       <h1 className="disp h2 rise d1">No saved investigations yet.</h1>
       <p className="muted rise d2" style={{ fontSize: 17 }}>Open a capture, then choose Save to account on its Verdict tab.</p>
-      <div className="rise d3"><Scan onClick={() => go('/')}>Open a capture</Scan></div>
+      <div className="rise d3"><OpenCapture then={() => go('/report')} /></div>
     </div>
   );
   return (

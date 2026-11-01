@@ -162,3 +162,16 @@ describe('attribution', () => {
     expect(d.source).toBe('TLS SNI');
   });
 });
+
+describe('inconclusive findings', () => {
+  it('give the fix for the dangerous reading, marked as conditional', async () => {
+    const r = await run('arp-gateway-ambiguous');
+    const open = r.findings.filter((f) => f.lane === 'INCONCLUSIVE');
+    expect(open.length).toBeGreaterThan(0);
+    for (const f of open) {
+      expect(f.fixIf, f.title).toBeTruthy();
+      expect(f.fixSteps.length).toBeGreaterThan(0);
+      expect(JSON.stringify(f.fixSteps)).not.toMatch(/undefined|null/);
+    }
+  });
+});

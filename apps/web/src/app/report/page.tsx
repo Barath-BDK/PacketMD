@@ -9,6 +9,7 @@ import { StoryPlayer } from '@/report/Story';
 import { Investigator } from '@/report/Investigator';
 import { TimeChart } from '@/report/TimeChart';
 import { PrintReport } from '@/report/PrintReport';
+import { OpenCapture } from '@/report/OpenCapture';
 
 const TABS: [string, string][] = [['verdict', 'Verdict'], ['findings', 'Findings'], ['differential', 'Differential'], ['story', 'Story'], ['fix', 'Fix plan'], ['verify', 'Verify fix'], ['timeline', 'Timeline'], ['hosts', 'Hosts'], ['activity', 'Activity'], ['investigator', 'Investigator']];
 const LANES = ['ATTACK', 'FAULT', 'INCONCLUSIVE', 'BENIGN'] as const;
@@ -148,7 +149,7 @@ export default function ReportPage() {
   if (!r) return (
     <div className="center"><h1 className="disp h2 rise d1">No capture open yet.</h1>
       <p className="muted rise d2" style={{ fontSize: 17 }}>Open a file or a lab sample first. Reports live only in this tab.</p>
-      <div className="rise d3"><Scan onClick={() => go('/')}>Open a capture</Scan></div></div>
+      <div className="rise d3"><OpenCapture /></div></div>
   );
   const n = r.findings.filter((f) => f.lane !== 'BENIGN').length;
   // A saved report has no packets, and its labelled addresses cannot be compared with a new capture.

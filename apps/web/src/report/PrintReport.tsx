@@ -48,7 +48,8 @@ function Section({ f, r, n }: { f: Finding; r: Report; n: number }) {
       </table>
       {f.evidence.length > 6 && <p className="pr-note">And {f.evidence.length - 6} more proof packets.</p>}
       {f.fixSteps.length > 0 && <div className="pr-fix">
-        <h3>How to fix it</h3>
+        <h3>{f.fixIf ? `If this turns out to be ${f.fixIf}` : 'How to fix it'}</h3>
+        {f.fixIf && <p className="pr-note">Inconclusive. It may be harmless, so check first and only then do these.</p>}
         <ol>{f.fixSteps.map((s, i) => (
           <li key={i}>
             <p className="pr-step">{s.title}</p>
@@ -74,7 +75,7 @@ export function PrintReport({ r, archived }: { r: Report; archived: boolean }) {
   }, [r]);
   if (!on) return null;
   const [first, ...rest] = r.headline.split('. ');
-  const steps = r.findings.flatMap((f) => f.fixSteps.slice(0, 1).map((s) => ({ s, f }))).slice(0, 5);
+  const steps = r.findings.filter((f) => !f.fixIf).flatMap((f) => f.fixSteps.slice(0, 1).map((s) => ({ s, f }))).slice(0, 5);
   return createPortal(
     <article className="print-doc">
       <header className="pr-top">

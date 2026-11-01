@@ -260,7 +260,7 @@ export function Stage({ root, look, mode, page, api, setPhase }: {
         if (kind === 3) setPhase('out');
         // rAF stops in a hidden tab, and navigation must never depend on it.
         const mine = tx;
-        setTimeout(() => { if (tx === mine && !mine.swapped) { mine.swapped = true; tx = null; mine.swap(); setPhase('idle'); } }, tr.dur * 0.6);
+        setTimeout(() => { if (tx === mine && !mine.swapped) { mine.swapped = true; mine.held = performance.now(); mine.swap(); } }, tr.dur * 0.6);
       },
     };
 

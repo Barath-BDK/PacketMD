@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-mode="dark" data-small="0" className={`${disp.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-mode="dark" data-small="1" className={`${disp.variable} ${sans.variable} ${mono.variable}`}>
       <body><CaseProvider><Shell>{children}</Shell></CaseProvider></body>
     </html>
   );

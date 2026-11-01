@@ -32,7 +32,7 @@ export function payload(r: Report) {
   const cut = (x: string, n: number) => x.slice(0, n);
   const findings = full.findings.slice(0, 30).map((f) => ({
     id: f.id, lane: f.lane, hypothesis: f.hypothesis, title: cut(f.title, 160), confidence: f.confidence, plain: cut(f.plain, 1000), cause: cut(f.cause, 1000),
-    whyNotTheOther: cut(f.whyNotTheOther, 1000), analogy: cut(f.analogy, 400), verifyBy: cut(f.verifyBy, 400), fixTitles: f.fixSteps.slice(0, 12).map((x) => cut(x.title, 200)), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
+    whyNotTheOther: cut(f.whyNotTheOther, 1000), analogy: cut(f.analogy, 400), verifyBy: cut(f.verifyBy, 400), fixTitles: f.fixSteps.slice(0, 12).map((x) => cut(f.fixIf ? `If confirmed: ${x.title}` : x.title, 200)), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
   }));
   // Most serious first, so the share function's size limit only ever costs the least important findings.
   while (findings.length > 1 && new TextEncoder().encode(JSON.stringify(findings)).length > 60_000) findings.pop();

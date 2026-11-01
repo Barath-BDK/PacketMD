@@ -217,10 +217,6 @@ input[type=range]::-webkit-slider-thumb { appearance: none; width: 10px; height:
 input[type=range]::-moz-range-track { height: 4px; background: var(--bar) }
 input[type=range]::-moz-range-progress { height: 4px; background: var(--ac) }
 input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; border-radius: 0; background: var(--ac) }
-.strip { position: fixed; z-index: 5; left: 40px; right: 12px; bottom: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 22px; font-family: var(--mono); font-size: var(--cap); pointer-events: none }
-.strip > * { pointer-events: auto }
-.strip:has(.g + .g) { background: var(--panel); border: 1px solid var(--line); padding: 6px 8px; left: auto; max-width: min(860px, calc(100vw - 24px)) }
-.strip .g { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 0 6px }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
 .sign { min-height: calc(100vh - 90px); display: flex; align-items: center; justify-content: center; padding: 20px 16px 44px; box-sizing: border-box }
@@ -274,7 +270,6 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .pad, .hero { padding-left: 16px; padding-right: 16px }
   .hero, .sign, .center { min-height: calc(100dvh - 120px) }
   .pad { padding-top: 28px }
-  .strip { display: none }
   /* Tables scroll inside their box here, so words and addresses stay whole. */
   table.t td { overflow-wrap: normal }
   table.t td.dat, .lane { white-space: nowrap }

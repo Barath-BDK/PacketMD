@@ -117,7 +117,11 @@ export function toFinding(ctx: Ctx, c: Case, n: number): Finding | null {
     finding.title = `${a!.title} or ${b!.title}`;
     finding.plain = `The evidence does not settle this. It leans towards "${a!.title.toLowerCase()}" but "${b!.title.toLowerCase()}" fits too, so PacketMD will not label it.`;
     finding.nextCapture = nextCapture(c);
-    finding.fixSteps = [];
+    // Show the fix for the dangerous reading, marked so nobody runs it before the question is settled.
+    const risk = [a, b].find((h) => h?.family === 'attack') ?? a!, plan = TEMPLATES[risk.id]!;
+    finding.fixSteps = plan.fix(f);
+    finding.verifyBy = plan.verify(f);
+    finding.fixIf = risk.title;
   }
   finding.levels = levelsOf(c, finding);
   finding.story = story(ctx, c, finding);
