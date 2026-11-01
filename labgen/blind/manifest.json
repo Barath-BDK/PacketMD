@@ -1,0 +1,80 @@
+[
+ {
+  "file": "arp-poison-by-request",
+  "must": [
+   "arp-spoof"
+  ],
+  "why": "Poisons with ARP requests rather than replies"
+ },
+ {
+  "file": "scan-ack",
+  "must": [
+   "port-scan"
+  ],
+  "why": "ACK scan used to map firewall rules"
+ },
+ {
+  "file": "scan-fragmented",
+  "must": [
+   "port-scan",
+   "parser-evasion"
+  ],
+  "why": "SYN scan split into tiny fragments"
+ },
+ {
+  "file": "scan-decoys",
+  "must": [
+   "port-scan"
+  ],
+  "why": "Each probe repeated from eight forged decoy addresses"
+ },
+ {
+  "file": "tunnel-txt-replies",
+  "must": [
+   "dns-tunnel"
+  ],
+  "why": "Short names, with data carried in large TXT replies"
+ },
+ {
+  "file": "beacon-udp",
+  "must": [
+   "beaconing"
+  ],
+  "why": "Beacon over UDP instead of TCP"
+ },
+ {
+  "file": "icmp-tunnel",
+  "must": [
+   "icmp-tunnel"
+  ],
+  "why": "Data hidden in large ping payloads"
+ },
+ {
+  "file": "rogue-dhcp-self-only",
+  "must": [
+   "rogue-dhcp-attack"
+  ],
+  "why": "Unknown vendor offers itself as gateway and DNS, no follow-up traffic in the capture"
+ },
+ {
+  "file": "flood-ipv6",
+  "must": [
+   "syn-flood"
+  ],
+  "why": "SYN flood over IPv6"
+ },
+ {
+  "file": "web-login-guessing",
+  "must": [
+   "brute-force"
+  ],
+  "why": "Sixty POSTs to /login on a non-standard port"
+ },
+ {
+  "file": "exfil-large-upload",
+  "must": [
+   "data-exfil"
+  ],
+  "why": "A large one-way upload to an unknown host"
+ }
+]

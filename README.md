@@ -43,7 +43,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 
 Faults: TCP retransmissions, resets, unanswered connections, zero-window stalls, DNS failures, duplicate IP, MTU black holes, unusual delay, DHCP failure, server outage, misconfigured second DHCP server.
 
-Attacks: ARP spoofing, DNS hijacking, rogue DHCP, port scans, SYN floods, DNS tunnelling, LLMNR/NBT-NS poisoning, parser evasion, beaconing, algorithm-generated domains.
+Attacks: ARP spoofing, DNS hijacking, rogue DHCP, DHCP starvation, port scans (SYN, stealth, ACK, UDP, ping and ARP sweeps), SYN, UDP and ping floods, reflection and amplification, Slowloris, DNS and ICMP tunnelling, rogue IPv6 routers, VLAN hopping, LLMNR/NBT-NS poisoning, forged TCP resets, forged ICMP redirects, password guessing, MAC flooding, parser evasion, beaconing, algorithm-generated domains, and possible data theft.
 
 ## Run it
 
@@ -136,6 +136,21 @@ From `pnpm accuracy` on 25 lab captures, 6 of them clean or benign look-alikes:
 | 1.0 | 1.0 | 0.0 |
 
 **Read this with care.** We generated these captures ourselves and tuned the thresholds on them, so this shows the logic works as designed. It does not predict results on real networks. The per-file table is on the Methodology page.
+
+### Attacking our own detectors
+
+Lab scores on tuned captures prove little, so we built captures designed to evade each check (`labgen/evasion.py`) and clean look-alikes that must stay quiet.
+
+| Round | Result |
+|---|---|
+| First evasion round, before any fixes | 8 of 26 caught, 1 false alarm on 7 look-alikes |
+| First held-out round (`labgen/blind.py`), written after those fixes, run untuned | **5 of 11 caught** |
+| Second held-out round (`labgen/blind2.py`), written after the next fixes, run untuned | **2 of 12 caught, 4 false alarms on 6 look-alikes** |
+| All 49 attacks plus 16 look-alikes after fixing, now permanent tests | 49 of 49 caught, 15 of 16 quiet |
+
+The held-out rounds are the honest numbers here: 7 of 23 attacks caught when nobody had tuned for them, about 30%. The second round was worse because it tried attack families the engine had never modelled, and 3 of its 4 false alarms came from detectors added the round before. Passing every test now shows those cases are fixed. It does not show a new technique would be caught. The remaining false alarm is a known limit: an app calling an unnamed host on a fixed timer reads as beaconing, because the capture looks the same. Run `npx tsx scripts/evasion.ts evasion`, `blind` or `blind2` to see each round. Volume attacks on the engine itself are covered by `tests/stress.test.ts`, which also found and fixed a real crash.
+
+A capture also has limits. PacketMD cannot see inside encrypted traffic, cannot tell a large backup from data theft (it reports Inconclusive), does not read application payloads for attacks such as SQL injection, and sees only the part of the network the capture covers. A VPN keepalive and a UDP beacon look alike, so those stay Inconclusive. A clean report means nothing we know how to see, never that a network is safe.
 
 Our parser's packet count, addresses and ports are checked against Scapy on every sample. Tests also confirm that recorded offsets reproduce the exact file bytes, and fuzzing checks that mutated samples never cause an unhandled error.
 

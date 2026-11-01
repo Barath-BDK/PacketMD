@@ -22,7 +22,7 @@ export interface RawPacket {
 }
 
 export interface Arp { op: number; sha: string; spa: string; tha: string; tpa: string }
-export interface Icmp { type: number; code: number; nextMtu?: number; innerSrc?: string; innerDst?: string; innerProto?: number }
+export interface Icmp { type: number; code: number; nextMtu?: number; innerSrc?: string; innerDst?: string; innerProto?: number; tail?: string }
 export interface Tcp {
   sport: number; dport: number; seq: number; ack: number; flags: number;
   win: number; mss?: number; payload: number; dataStart: number;
@@ -42,7 +42,7 @@ export interface Http { method: string; path: string; host?: string; ua?: string
 
 export interface Pkt {
   no: number; ts: number; len: number; capLen: number; recordOffset: number; dataOffset: number; blockType?: string;
-  srcMac?: string; dstMac?: string; vlan?: number;
+  srcMac?: string; dstMac?: string; vlan?: number; vlanDepth?: number; icmp6?: number;
   arp?: Arp;
   ipv?: 4 | 6; src?: string; dst?: string; ttl?: number; ipProto?: number; df?: boolean; mf?: boolean; fragOff?: number; ipId?: number; ipLen?: number;
   icmp?: Icmp; tcp?: Tcp; udp?: Udp; dns?: Dns; dhcp?: Dhcp; tls?: Tls; http?: Http;

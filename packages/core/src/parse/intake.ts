@@ -23,7 +23,8 @@ export function gate(fileName: string, size: number, head: Uint8Array): GateResu
     return { ok: false, reason, steps, name };
   };
 
-  const ext = /\.(pcapng|pcap)$/i.exec(name)?.[1]?.toLowerCase() as 'pcap' | 'pcapng' | undefined;
+  // Checked on the original name: the display copy is shortened and would lose its extension.
+  const ext = /\.(pcapng|pcap)$/i.exec(fileName.trim())?.[1]?.toLowerCase() as 'pcap' | 'pcapng' | undefined;
   if (!ext) return fail('ext', 'File type', `Only .pcap and .pcapng files are accepted. "${name}" is neither.`);
   steps.push({ key: 'ext', label: 'File type', ok: true, detail: `.${ext}` });
 

@@ -11,6 +11,7 @@ const hostile = (f: string) => new Uint8Array(readFileSync(`labgen/hostile/${f}`
 
 describe('intake gate', () => {
   const pcap = new Uint8Array([0xd4, 0xc3, 0xb2, 0xa1, 2, 0, 4, 0, ...new Array(20).fill(0)]);
+  it('keeps a valid capture with a very long name', () => expect(gate(`${'a'.repeat(300)}.pcap`, 100, pcap).ok).toBe(true));
   it('needs extension and magic to agree', () => {
     expect(gate('a.pcap', 100, pcap).ok).toBe(true);
     expect(gate('a.pcapng', 100, pcap).ok).toBe(false);

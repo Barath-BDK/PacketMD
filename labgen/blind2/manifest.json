@@ -1,0 +1,160 @@
+[
+ {
+  "file": "udp-flood",
+  "must": [
+   "udp-flood"
+  ],
+  "why": "Hundreds of large UDP packets at one host",
+  "allow": []
+ },
+ {
+  "file": "icmp-flood",
+  "must": [
+   "udp-flood"
+  ],
+  "why": "Ping flood with small packets",
+  "allow": []
+ },
+ {
+  "file": "dns-amplification",
+  "must": [
+   "reflection"
+  ],
+  "why": "Large DNS replies the victim never asked for",
+  "allow": []
+ },
+ {
+  "file": "ntp-amplification",
+  "must": [
+   "reflection"
+  ],
+  "why": "NTP monlist replies reflected at a victim",
+  "allow": []
+ },
+ {
+  "file": "slowloris",
+  "must": [
+   "slowloris"
+  ],
+  "why": "Many connections that never finish their request",
+  "allow": []
+ },
+ {
+  "file": "distributed-ssh-guessing",
+  "must": [
+   "brute-force"
+  ],
+  "why": "Sixty sources each try SSH once",
+  "allow": []
+ },
+ {
+  "file": "scan-ipv6",
+  "must": [
+   "port-scan"
+  ],
+  "why": "SYN scan over IPv6",
+  "allow": []
+ },
+ {
+  "file": "rogue-ipv6-router",
+  "must": [
+   "rogue-ra"
+  ],
+  "why": "Rogue IPv6 router advertisements",
+  "allow": []
+ },
+ {
+  "file": "vlan-hopping",
+  "must": [
+   "vlan-hopping"
+  ],
+  "why": "Double tagged frames jump into another VLAN",
+  "allow": []
+ },
+ {
+  "file": "smurf",
+  "must": [
+   "reflection"
+  ],
+  "why": "Forged pings to broadcast, so every host answers the victim",
+  "allow": []
+ },
+ {
+  "file": "land-attack",
+  "must": [
+   "parser-evasion"
+  ],
+  "why": "Source and destination both the victim",
+  "allow": []
+ },
+ {
+  "file": "dns-race-poison",
+  "must": [
+   "dns-hijack",
+   "dns-hijack-attack",
+   "dns-spoof"
+  ],
+  "why": "Guesses the query ID with a burst of forged replies",
+  "allow": []
+ },
+ {
+  "file": "clean-mtu-test",
+  "must": null,
+  "why": "An admin testing path MTU with large pings",
+  "allow": []
+ },
+ {
+  "file": "clean-vpn-keepalive",
+  "must": null,
+  "why": "WireGuard keepalive every 25 seconds, which may be questioned but never called an attack",
+  "allow": [
+   "beaconing"
+  ]
+ },
+ {
+  "file": "clean-token-refresh",
+  "must": null,
+  "why": "An app refreshing its token once a minute. Known limit: regular calls to an unnamed host still read as beaconing",
+  "allow": [
+   "beaconing"
+  ]
+ },
+ {
+  "file": "clean-mail-txt-lookups",
+  "must": null,
+  "why": "A mail server checking SPF records",
+  "allow": []
+ },
+ {
+  "file": "clean-capture-started-late",
+  "must": null,
+  "why": "Capture began after thirty connections were already open",
+  "allow": []
+ },
+ {
+  "file": "clean-cloud-backup",
+  "must": null,
+  "why": "A nightly backup, which may be questioned but never called an attack",
+  "allow": [
+   "data-exfil"
+  ]
+ },
+ {
+  "file": "clean-quic-download",
+  "must": null,
+  "why": "A fast download over QUIC with few acknowledgements",
+  "allow": []
+ },
+ {
+  "file": "clean-video-call",
+  "must": null,
+  "why": "A video call sending both ways",
+  "allow": []
+ },
+ {
+  "file": "clean-real-router-ra",
+  "must": null,
+  "why": "The real gateway advertising itself over IPv6",
+  "allow": []
+ }
+]

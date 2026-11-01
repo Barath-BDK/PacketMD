@@ -20,9 +20,11 @@ export function fullPayload(r: Report) {
 /** Findings only, using the same labels as the full report so one host never gets two names. */
 export function payload(r: Report) {
   const full = fullPayload(r);
-  const findings = full.findings.map((f) => ({
-    id: f.id, lane: f.lane, hypothesis: f.hypothesis, title: f.title, confidence: f.confidence, plain: f.plain, cause: f.cause,
-    whyNotTheOther: f.whyNotTheOther, analogy: f.analogy, verifyBy: f.verifyBy, fixTitles: f.fixSteps.map((x) => x.title), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
+  // Stays inside the share function's limits, so a capture with long values cannot make sharing fail.
+  const cut = (x: string, n: number) => x.slice(0, n);
+  const findings = full.findings.slice(0, 100).map((f) => ({
+    id: f.id, lane: f.lane, hypothesis: f.hypothesis, title: cut(f.title, 160), confidence: f.confidence, plain: cut(f.plain, 1000), cause: cut(f.cause, 1000),
+    whyNotTheOther: cut(f.whyNotTheOther, 1000), analogy: cut(f.analogy, 400), verifyBy: cut(f.verifyBy, 400), fixTitles: f.fixSteps.slice(0, 12).map((x) => cut(x.title, 200)), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
   }));
-  return { file_sha256: r.defense.sha256, summary: pseudonymize({ headline: r.headline, packets: r.defense.packets, schema: r.schema }), findings };
+  return { file_sha256: r.defense.sha256, summary: pseudonymize({ headline: cut(r.headline, 300), packets: r.defense.packets, schema: r.schema }), findings };
 }

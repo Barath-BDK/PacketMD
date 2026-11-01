@@ -285,12 +285,15 @@ function decodeUdp(c: Cur, pkt: Pkt, payloadEnd: number, t: Tree) {
   pkt.info = `${sport} to ${dport} len=${len}`;
   const has = (p: number) => sport === p || dport === p;
   const u = new Cur(c.b, c.p, Math.min(payloadEnd, c.end));
-  if (has(53)) decodeDns(u, 'dns', pkt, t);
-  else if (has(5353)) decodeDns(u, 'mdns', pkt, t);
-  else if (has(5355)) decodeDns(u, 'llmnr', pkt, t);
-  else if (has(137)) decodeNbns(u, pkt, t);
-  else if (has(67) || has(68)) decodeDhcp(u, pkt, t);
-  else if (has(123)) { pkt.ntp = true; pkt.proto = 'NTP'; pkt.info = 'Time sync'; }
+  // A well-known port does not make the payload that protocol: scanners send junk here, and it is not a crafted header.
+  try {
+    if (has(53)) decodeDns(u, 'dns', pkt, t);
+    else if (has(5353)) decodeDns(u, 'mdns', pkt, t);
+    else if (has(5355)) decodeDns(u, 'llmnr', pkt, t);
+    else if (has(137)) decodeNbns(u, pkt, t);
+    else if (has(67) || has(68)) decodeDhcp(u, pkt, t);
+    else if (has(123)) { pkt.ntp = true; pkt.proto = 'NTP'; pkt.info = 'Time sync'; }
+  } catch (e) { if (!(e instanceof Overrun)) throw e; }
 }
 
 function decodeIcmp(c: Cur, pkt: Pkt, t: Tree) {
@@ -307,6 +310,8 @@ function decodeIcmp(c: Cur, pkt: Pkt, t: Tree) {
     pkt.info = `Fragmentation needed, next-hop MTU ${r2}`;
   }
   void r1;
+  // Past the 16 bytes ping uses for timestamps, real pings repeat one pattern, so differing payloads mean real data.
+  if ((type === 8 || type === 0) && c.left() >= 24) { c.skip(16); pkt.icmp.tail = Array.from(c.bytes(Math.min(32, c.left()))).join(','); }
   if (type === 3 && c.left() >= 20) {
     const inner = c.p;
     c.skip(9);
@@ -376,7 +381,7 @@ function decodeIp6(c: Cur, pkt: Pkt, t: Tree) {
   const end = Math.min(c.p + pl, c.end);
   if (nh === 6) decodeTcp(c, pkt, c.p + pl, t);
   else if (nh === 17) decodeUdp(c, pkt, end, t);
-  else if (nh === 58) { pkt.proto = 'ICMPv6'; pkt.info = 'ICMPv6'; }
+  else if (nh === 58) { pkt.proto = 'ICMPv6'; pkt.info = 'ICMPv6'; if (c.left() > 0) pkt.icmp6 = c.u8(); }
 }
 
 /** Decodes one packet. With a tree array it also records each field's byte range. */
@@ -398,6 +403,7 @@ export function decode(raw: RawPacket, tree: Tree = null): Pkt {
         pkt.vlan = c.u16() & 0xfff; et = c.u16();
         node(tree, `VLAN ${pkt.vlan}`, vs, 4);
       }
+      if (depth > 1) pkt.vlanDepth = depth;
     } else if (raw.linkType === 101) {
       et = ((raw.data[0] ?? 0) >> 4) === 6 ? 0x86dd : 0x0800;
     } else if (raw.linkType === 113) {

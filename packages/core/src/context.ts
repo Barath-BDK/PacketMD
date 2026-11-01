@@ -9,6 +9,7 @@ export interface Flow {
   pkts: number; bytes: number; bytesAB: number; bytesBA: number; t0: number; t1: number; first: number;
   nos: number[];
   syn: { no: number; ts: number }[]; synAck: number[]; est: boolean; rst: { no: number; ts: number; fromA: boolean; early: boolean }[]; fin: boolean;
+  macA?: string; macB?: string; forgedRst: number[];
   retrans: Retrans[]; dup: number; zeroWin: number[]; rtt?: number; largeRetrans: number; maxOk: number; mss?: number;
   domain?: string; domainRank: number; domainSource?: string; domainPacket?: number; hiddenName?: 'ECH' | 'DoT' | 'DoH';
   dA: Dir; dB: Dir; ua?: string; ja3?: string; firstData?: number;
@@ -24,6 +25,7 @@ export interface Ctx {
   macIps: Map<string, Set<string>>;
   arpAsks: Map<string, number>;                 // who-has requests by "asker>target"
   dnsMap: Map<string, { name: string; no: number; exp: number }>;
+  macCount: Map<string, { frames: number; first: number; last: number }>;
   dhcpRouters: Map<string, number>;             // router option counts
   dhcpDns: Set<string>;
   gateways: Set<string>;
@@ -39,12 +41,16 @@ const isSynthetic = (ip: string) => ip === '0.0.0.0' || ip === '255.255.255.255'
 export function buildContext(pkts: Pkt[], baseline?: Baseline): Ctx {
   const flowMap = new Map<string, Flow>();
   const ctx: Ctx = {
-    pkts, flows: [], evicted: 0, ipMac: new Map(), macIps: new Map(), arpAsks: new Map(), dnsMap: new Map(),
+    pkts, flows: [], evicted: 0, ipMac: new Map(), macIps: new Map(), arpAsks: new Map(), dnsMap: new Map(), macCount: new Map(),
     dhcpRouters: new Map(), dhcpDns: new Set(), gateways: new Set(), baseline,
     get: (no) => pkts[no - 1]!,
   };
 
   for (const p of pkts) {
+    if (p.srcMac) {
+      const m = ctx.macCount.get(p.srcMac);
+      if (m) { m.frames++; m.last = p.ts; } else ctx.macCount.set(p.srcMac, { frames: 1, first: p.no, last: p.ts });
+    }
     if (p.arp) observeArp(ctx, p);
     if (p.dhcp) {
       if (p.dhcp.router && (p.dhcp.msgType === 2 || p.dhcp.msgType === 5)) ctx.dhcpRouters.set(p.dhcp.router, (ctx.dhcpRouters.get(p.dhcp.router) ?? 0) + 1);
@@ -105,7 +111,7 @@ function flowOf(ctx: Ctx, map: Map<string, Flow>, p: Pkt): { f: Flow; fromA: boo
   f = {
     id: `c${map.size + ctx.evicted + 1}`, proto: proto as Flow['proto'], a: p.src!, b: p.dst!, pa: sp, pb: dp,
     pkts: 0, bytes: 0, bytesAB: 0, bytesBA: 0, t0: p.ts, t1: p.ts, first: p.no, nos: [], syn: [], synAck: [], est: false, rst: [], fin: false,
-    retrans: [], dup: 0, zeroWin: [], largeRetrans: 0, maxOk: 0, domainRank: 0, dA: d(), dB: d(),
+    forgedRst: [], retrans: [], dup: 0, zeroWin: [], largeRetrans: 0, maxOk: 0, domainRank: 0, dA: d(), dB: d(),
   };
   map.set(k1, f);
   const hit = ctx.dnsMap.get(p.dst!);
@@ -139,6 +145,9 @@ function track(ctx: Ctx, map: Map<string, Flow>, p: Pkt) {
   }
   if (syn && ack) { f.synAck.push(p.no); if (f.syn.length && f.rtt === undefined) f.rtt = p.ts - f.syn[0]!.ts; }
   if (!syn && ack && !rst && f.synAck.length) f.est = true;
+  const usual = fromA ? f.macA : f.macB;
+  if (rst && usual && p.srcMac && p.srcMac !== usual) f.forgedRst.push(p.no);
+  else if (!rst && !usual) { if (fromA) f.macA = p.srcMac; else f.macB = p.srcMac; }
   if (rst) f.rst.push({ no: p.no, ts: p.ts, fromA, early: !f.est });
   if (t.flags & 1) f.fin = true;
   if (t.win === 0 && !rst && !syn) { f.zeroWin.push(p.no); (p.flags ??= []).push('zerowin'); }

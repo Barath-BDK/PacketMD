@@ -384,11 +384,12 @@ def s_large():
     wrpcap(str(OUT / "large-capture.pcap"), p)
 
 
-for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify, s_ambiguous):
-    fn()
-if "--demo" in sys.argv:
-    s_fix_demo()
-if "--large" in sys.argv:
-    s_large()
-(OUT / "expected.json").write_text(json.dumps(expected, indent=2))
-print(len(expected), "samples")
+if __name__ == "__main__":
+    for fn in (s_normal, s_retrans, s_resets, s_dns_fail, s_dup, s_arp, s_mtu, s_scan, s_hijack, s_rogue, s_flood, s_failover, s_relay, s_llmnr, s_mixed, s_beacon, s_dga, s_tunnel, s_hidden, s_verify, s_ambiguous):
+        fn()
+    if "--demo" in sys.argv:
+        s_fix_demo()
+    if "--large" in sys.argv:
+        s_large()
+    (OUT / "expected.json").write_text(json.dumps(expected, indent=2))
+    print(len(expected), "samples")

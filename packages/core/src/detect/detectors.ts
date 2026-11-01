@@ -1,12 +1,18 @@
 import { T } from '../thresholds';
 import type { Ctx, Flow } from '../context';
 import type { BenignCheck, Candidate, Pkt, Signal } from '../types';
+import { bruteForce, dhcpStarvation, exfil, floods, icmpRedirect, icmpTunnel, landAttack, loginGuessing, macFlood, otherScans, reflection, rogueRouter, rstInjection, slowloris, udpBeacon, vlanHopping } from './extra';
 
 const uniq = <X,>(a: X[]) => [...new Set(a)];
 const cap = (a: number[], n = 40) => a.slice(0, n);
 const sig = (id: string, label: string, weights: Record<string, number>, packets: number[]): Signal => ({ id, label, weights, packets: cap(packets) });
 const check = (id: string, label: string, matched: boolean, packets: number[] = []): BenignCheck => ({ id, label, matched, packets: cap(packets) });
-function span(ctx: Ctx, nos: number[]) { const ts = nos.map((n) => ctx.get(n).ts); return { t0: Math.min(...ts), t1: Math.max(...ts) }; }
+// A loop, not Math.min(...x): spreading a huge list overflows the stack, and an attacker controls the size.
+function span(ctx: Ctx, nos: number[]) {
+  let t0 = Infinity, t1 = -Infinity;
+  for (const n of nos) { const t = ctx.get(n).ts; if (t < t0) t0 = t; if (t > t1) t1 = t; }
+  return { t0, t1 };
+}
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1] ?? 0; };
 
 export function ipNum(ip: string) { const p = ip.split('.').map(Number); return ((p[0]! << 24) | (p[1]! << 16) | (p[2]! << 8) | p[3]!) >>> 0; }
@@ -21,7 +27,14 @@ const SCANNER_UA = /(nessus|qualys|openvas|greenbone|nmap scripting|rapid7|tenab
 export function identity(ctx: Ctx): Candidate[] {
   const out: Candidate[] = [];
   const decline = ctx.pkts.filter((p) => p.dhcp?.msgType === 4);
-  for (const [ip, macs] of ctx.ipMac) {
+  // Indexed once: scanning every packet per address would let a capture stall the engine.
+  const leases = new Map<string, Pkt>(), toMac = new Map<string, Pkt[]>();
+  for (const p of ctx.pkts) {
+    if (p.dhcp?.msgType === 5 && !leases.has(p.dhcp.yiaddr)) leases.set(p.dhcp.yiaddr, p);
+    if (p.ipv === 4 && p.dstMac) { const l = toMac.get(p.dstMac); if (!l) toMac.set(p.dstMac, [p]); else if (l.length < 2000) l.push(p); }
+  }
+  const claimed = [...ctx.ipMac].filter(([ip, m]) => m.size > 1 || ctx.baseline?.ipMac[ip]).sort((a, b) => b[1].size - a[1].size).slice(0, T.MAX_CANDIDATES);
+  for (const [ip, macs] of claimed) {
     if (macs.size < 2) {
       const only = [...macs.values()][0]!, base = ctx.baseline?.ipMac[ip];
       if (!base || base === only.mac) continue;
@@ -44,17 +57,20 @@ export function identity(ctx: Ctx): Candidate[] {
     const flips = seq.filter((m, i) => i && m !== seq[i - 1]).length;
     if (flips >= 3) signals.push(sig('flips', `The owner of ${ip} flipped ${flips} times between MACs.`, { 'arp-spoof': 1, 'duplicate-ip': 1, benign: -1.5 }, nos));
 
-    const relayed = ctx.pkts.filter((p) => p.ipv === 4 && p.dstMac === rival.mac && p.dst !== undefined && !others.includes(p.dst) && p.dst !== ip && p.ts >= rival.first).slice(0, 40).map((p) => p.no);
+    const relayed = (toMac.get(rival.mac) ?? []).filter((p) => p.dst !== undefined && !others.includes(p.dst) && p.dst !== ip && p.ts >= rival.first).slice(0, 40).map((p) => p.no);
     if (relayed.length >= 3) signals.push(sig('intercept', `Traffic for other hosts now passes through ${rival.mac}, the claimant.`, { 'arp-spoof': 2.5, 'duplicate-ip': -1 }, relayed));
 
-    const acked = ctx.pkts.find((p) => p.dhcp?.msgType === 5 && p.dhcp.yiaddr === ip && (p.dhcp.chaddr === rival.mac || p.dhcp.chaddr === old.mac));
+    const lease = leases.get(ip), acked = lease && (lease.dhcp!.chaddr === rival.mac || lease.dhcp!.chaddr === old.mac) ? lease : undefined;
     if (acked) signals.push(sig('dhcp-lease', `DHCP handed ${ip} to ${acked.dhcp!.chaddr} while another device was already using it.`, { 'duplicate-ip': 3, 'arp-spoof': -1.5 }, [acked.no]));
     const dec = decline.filter((p) => p.dhcp!.requested === ip);
     if (dec.length) signals.push(sig('decline', `A client refused ${ip} because it found the address in use.`, { 'duplicate-ip': 2.5, 'arp-spoof': -1 }, dec.map((p) => p.no)));
     if (rival.unsolicited < T.ARP_REPLY_RATE && !isGw && !others.length) signals.push(sig('quiet', 'Both devices only speak ARP normally, with no burst of forged replies.', { 'duplicate-ip': 1.5, 'arp-spoof': -1 }, nos));
     if (base && base !== rival.mac) signals.push(sig('off-baseline', `Your saved baseline says ${ip} belongs to ${base}.`, { 'arp-spoof': 1.5, benign: -2 }, rival.pkts));
 
-    const after = old.last <= rival.first + T.FAILOVER_WINDOW_S;
+    // Any frame counts, not just ARP: a real failover means the old device has truly gone quiet.
+    const oldLast = Math.max(old.last, ctx.macCount.get(old.mac)?.last ?? 0);
+    const after = oldLast <= rival.first || !ctx.pkts.some((p) => p.srcMac === old.mac && p.ts > rival.first + T.FAILOVER_GRACE_S);
+    if (!after && !rival.unsolicited) signals.push(sig('old-alive', `${old.mac} is still sending traffic after ${rival.mac} claimed its address, so this is no failover.`, { 'arp-spoof': 2.5, benign: -2 }, rival.pkts));
     const failover = after && flips <= 1 && !others.length && rival.announces >= 1;
     const benign = [check('failover', `Failover: ${old.mac} went silent and ${rival.mac} announced itself once`, failover, rival.pkts)];
     if (failover) signals.push(sig('failover', `${old.mac} stopped talking when ${rival.mac} took over, the pattern of a redundant pair failing over.`, { benign: 4, 'arp-spoof': -2.5, 'duplicate-ip': -2 }, rival.pkts));
@@ -80,6 +96,11 @@ export function rogueDhcp(ctx: Ctx): Candidate[] {
       const pk = servers.get(srv!)!;
       return [{ detector: 'dhcp', topic: 'dhcp', hypotheses: ['rogue-dhcp-attack', 'rogue-dhcp-misconfig'], hosts: [srv!], ...span(ctx, pk.map((p) => p.no)), evidence: cap(pk.map((p) => p.no)), signals: [sig('off-baseline', `DHCP server ${srv} is not in your saved baseline.`, { 'rogue-dhcp-attack': 1.5, 'rogue-dhcp-misconfig': 1.5, benign: -2 }, pk.map((p) => p.no))], benign: [], facts: { server: srv!, legit: baseSrv[0]!, router: pk[0]!.dhcp!.router ?? '', dns: pk[0]!.dhcp!.dns.join(', ') } }];
     }
+    const offer = servers.get(srv!)![0]!, od = offer.dhcp!;
+    if (od.router && od.yiaddr !== '0.0.0.0' && !sameNet(od.yiaddr, od.router, od.mask)) {
+      const nos = servers.get(srv!)!.map((p) => p.no);
+      return [{ detector: 'dhcp', topic: 'dhcp', hypotheses: ['rogue-dhcp-attack', 'rogue-dhcp-misconfig'], hosts: [srv!], ...span(ctx, nos), evidence: cap(nos), signals: [sig('off-subnet-gw', `${srv} gives clients the address ${od.yiaddr} but a gateway, ${od.router}, outside that network. No working setup does this, and it fits traffic being steered away.`, { 'rogue-dhcp-attack': 3, 'rogue-dhcp-misconfig': 0.5, benign: -3 }, nos)], benign: [], facts: { server: srv!, legit: 'none seen', router: od.router, dns: od.dns.join(', '), serverMac: offer.srcMac ?? '', vendor: '', clients: uniq(servers.get(srv!)!.map((p) => p.dhcp!.chaddr)), legitRouter: '' } }];
+    }
     if (relayed.length) {
       const nos = relayed.map((p) => p.no);
       return [{ detector: 'dhcp', topic: 'dhcp', hypotheses: [], hosts: [srv!, relayed[0]!.dhcp!.giaddr], ...span(ctx, nos), evidence: cap(nos), signals: [sig('relay', `Offers come through relay ${relayed[0]!.dhcp!.giaddr} but all carry one server identity, ${srv}.`, { benign: 3 }, nos)], benign: [check('relay', 'DHCP relay forwarding for one server', true, nos)], facts: { server: srv!, relay: relayed[0]!.dhcp!.giaddr, benignKind: 'DHCP relay' } }];
@@ -88,7 +109,7 @@ export function rogueDhcp(ctx: Ctx): Candidate[] {
   }
   if (servers.size < 2) return [];
 
-  const ranked = [...servers.entries()].sort((a, b) => {
+  const ranked = [...servers.entries()].slice(0, 20).sort((a, b) => {
     if (baseSrv?.includes(a[0])) return -1;
     if (baseSrv?.includes(b[0])) return 1;
     const ra = (ctx.dhcpRouters.get(a[1][0]!.dhcp!.router ?? '') ?? 0), rb = (ctx.dhcpRouters.get(b[1][0]!.dhcp!.router ?? '') ?? 0);
@@ -130,9 +151,9 @@ export function dhcpFailure(ctx: Ctx): Candidate[] {
   for (const p of ctx.pkts) if (p.dhcp?.msgType === 1) (by.get(p.dhcp.chaddr) ?? by.set(p.dhcp.chaddr, []).get(p.dhcp.chaddr)!).push(p);
   const out: Candidate[] = [];
   const naks = ctx.pkts.filter((p) => p.dhcp?.msgType === 6);
+  const offered = new Set(ctx.pkts.filter((p) => p.dhcp?.msgType === 2).map((p) => p.dhcp!.chaddr));
   for (const [m, list] of by) {
-    const got = ctx.pkts.some((p) => p.dhcp?.msgType === 2 && p.dhcp.chaddr === m);
-    if (got || list.length < T.DHCP_DISCOVER_MIN) continue;
+    if (offered.has(m) || list.length < T.DHCP_DISCOVER_MIN) continue;
     const nos = list.map((p) => p.no);
     out.push({ detector: 'dhcp-health', topic: 'dhcp-health', hypotheses: ['dhcp-failure'], hosts: [m], ...span(ctx, nos), evidence: cap(nos), signals: [sig('no-offer', `${m} asked for an address ${list.length} times and no server answered.`, { 'dhcp-failure': 3, benign: -2 }, nos)], benign: [], facts: { mac: m, tries: list.length } });
   }
@@ -150,6 +171,19 @@ export function dnsHijack(ctx: Ctx): Candidate[] {
     else (replies.get(key(p)) ?? replies.set(key(p), []).get(key(p))!).push(p);
   }
   let facts: Candidate['facts'] = {};
+  // A forger can copy the resolver's IP, but its frames still carry its own MAC.
+  const macs = new Map<string, Map<string, number>>();
+  for (const p of dns) if (p.dns!.qr && p.srcMac) { const m = macs.get(p.src!) ?? macs.set(p.src!, new Map()).get(p.src!)!; m.set(p.srcMac, (m.get(p.srcMac) ?? 0) + 1); }
+  for (const [ip, m] of macs) {
+    if (m.size < 2) continue;
+    const [usual] = [...m.entries()].sort((a, b) => b[1] - a[1])[0]!;
+    const odd = dns.filter((p) => p.dns!.qr && p.src === ip && p.srcMac !== usual && p.dns!.answers.length);
+    if (!odd.length) continue;
+    const r0 = odd[0]!;
+    signals.push(sig('mac-mismatch', `An answer for ${r0.dns!.qname} claimed to come from ${ip} but arrived from ${r0.srcMac}. Every other answer from that resolver came from ${usual}.`, { 'dns-hijack': 3.5, benign: -2 }, odd.map((p) => p.no)));
+    bad.push(...odd.map((p) => p.no)); hosts.add(r0.dst!);
+    facts = { qname: r0.dns!.qname, forged: r0.dns!.answers[0]?.data ?? '', victim: r0.dst!, resolver: ip, forger: r0.srcMac!, ...facts };
+  }
   for (const [k, rs] of replies) {
     const ask = q.get(k);
     if (ask && rs.length > 1) {
@@ -188,9 +222,10 @@ export function dnsHealth(ctx: Ctx): Candidate[] {
   const byServer = new Map<string, Pkt[]>();
   for (const p of ctx.pkts) if (p.dns?.kind === 'dns' && !p.dns.qr && p.dst) (byServer.get(p.dst) ?? byServer.set(p.dst, []).get(p.dst)!).push(p);
   const out: Candidate[] = [];
-  for (const [srv, qs] of byServer) {
-    const answered = new Map<string, Pkt>();
-    for (const p of ctx.pkts) if (p.dns?.qr && p.dns.kind === 'dns' && p.src === srv) answered.set(`${p.dns.id}|${p.dns.qname}`, p);
+  const replies = new Map<string, Map<string, Pkt>>();
+  for (const p of ctx.pkts) if (p.dns?.qr && p.dns.kind === 'dns' && p.src) (replies.get(p.src) ?? replies.set(p.src, new Map()).get(p.src)!).set(`${p.dns.id}|${p.dns.qname}`, p);
+  for (const [srv, qs] of [...byServer].sort((a, b) => b[1].length - a[1].length).slice(0, 50)) {
+    const answered = replies.get(srv) ?? new Map<string, Pkt>();
     const fails: number[] = [], lost: number[] = [], slow: number[] = [];
     let nx = 0, sv = 0;
     for (const q of qs) {
@@ -242,7 +277,7 @@ export function tcpHealth(ctx: Ctx, skip: Set<string>): Candidate[] {
     out.push({ detector: 'tcp', topic: 'zero-window', hypotheses: ['zero-window'], hosts: [f.a, f.b], ...span(ctx, f.zeroWin), evidence: cap(f.zeroWin), signals: [sig('zw', `${who} told its peer ${f.zeroWin.length} times to stop sending: its buffer is full.`, { 'zero-window': 3, benign: -2 }, f.zeroWin)], benign: [], facts: { host: who, peer: who === f.a ? f.b : f.a, port: f.pb, count: f.zeroWin.length } });
   }
   const rsts = new Map<string, Flow[]>();
-  for (const f of ctx.flows) if (f.rst.length && !skip.has(f.a)) { const k = `${f.b}:${f.pb}`; (rsts.get(k) ?? rsts.set(k, []).get(k)!).push(f); }
+  for (const f of ctx.flows) if (f.rst.length && !f.forgedRst.length && !skip.has(f.a)) { const k = `${f.b}:${f.pb}`; (rsts.get(k) ?? rsts.set(k, []).get(k)!).push(f); }
   for (const fs of rsts.values()) {
     const all = fs.flatMap((f) => f.rst);
     if (all.length < T.RST_MIN) continue;
@@ -268,25 +303,28 @@ export function scans(ctx: Ctx): { cands: Candidate[]; sources: Set<string> } {
     }
     const vert = [...perHost.entries()].sort((a, b) => b[1].size - a[1].size)[0]!;
     const horiz = [...perPort.entries()].sort((a, b) => b[1].size - a[1].size)[0]!;
-    const isV = vert[1].size >= T.SCAN_PORTS, isH = horiz[1].size >= T.SCAN_HOSTS;
+    const synOnly = fs.filter((f) => !f.est).length / fs.length;
+    // A browser reaches many hosts on 443 and finishes every handshake. A scan does not.
+    const isV = vert[1].size >= T.SCAN_PORTS || (vert[1].size >= T.SCAN_PORTS_MIN && synOnly >= T.SCAN_SYN_ONLY), fan = perHost.size, isH = (horiz[1].size >= T.SCAN_HOSTS || fan >= T.SCAN_HOSTS) && synOnly >= 0.5;
     if (!isV && !isH) continue;
     sources.add(src);
     const nos = fs.map((f) => f.first).sort((a, b) => a - b);
-    const synOnly = fs.filter((f) => !f.est).length / fs.length;
     const dur = Math.max(0.001, ctx.get(nos.at(-1)!).ts - ctx.get(nos[0]!).ts), rate = fs.length / dur;
     const ports = fs.map((f) => f.pb);
     const sequential = ports.slice(1).filter((p, i) => p === ports[i]! + 1).length > ports.length * 0.5;
-    const signals = [sig('fanout', isV ? `${src} tried ${vert[1].size} ports on ${vert[0]}.` : `${src} tried port ${horiz[0]} on ${horiz[1].size} hosts.`, { 'port-scan': 3, benign: -0.5 }, nos)];
+    const signals = [sig('fanout', isV ? `${src} tried ${vert[1].size} ports on ${vert[0]}.` : horiz[1].size >= T.SCAN_HOSTS ? `${src} tried port ${horiz[0]} on ${horiz[1].size} hosts.` : `${src} tried ${fan} different hosts, spreading its probes thinly.`, { 'port-scan': 3, benign: -0.5 }, nos)];
     if (synOnly >= T.SCAN_SYN_ONLY) signals.push(sig('syn-only', `${Math.round(synOnly * 100)}% of attempts never finished a handshake: it is probing, not connecting.`, { 'port-scan': 2, benign: -1 }, nos));
     if (rate > 20) signals.push(sig('rate', `${Math.round(rate)} attempts per second, faster than any person.`, { 'port-scan': 1 }, nos));
     if (sequential) signals.push(sig('sequential', 'Ports were tried in order, one after another.', { 'port-scan': 0.5 }, nos));
     const uas = fs.map((f) => f.ua).filter(Boolean) as string[];
-    const known = uas.find((u) => SCANNER_UA.test(u));
+    // The name is only believed from a client that behaves like one: a User-Agent costs an attacker nothing.
+    const claimed = uas.find((u) => SCANNER_UA.test(u)), known = synOnly < 0.3 ? claimed : undefined;
+    if (claimed && !known) signals.push(sig('fake-scanner', `It names itself as a scanner (${claimed}) yet ${Math.round(synOnly * 100)}% of its attempts never connected, which a real vulnerability scanner does not do.`, { 'port-scan': 2, benign: -2 }, nos));
     const uaPkts = fs.filter((f) => f.ua).map((f) => f.first);
     const benign = [check('known-scanner', known ? `Identifies itself as a vulnerability scanner: "${known}"` : 'Identifies itself as a known vulnerability scanner', !!known, uaPkts)];
     if (known) signals.push(sig('known-scanner', `It announces itself as a vulnerability scanner (${known}) and completes real connections.`, { benign: 6, 'port-scan': -2 }, uaPkts));
     const open = uniq(fs.filter((f) => f.synAck.length).map((f) => f.pb)).sort((a, b) => a - b);
-    out.push({ detector: 'scan', topic: 'scan', hypotheses: ['port-scan'], hosts: [src, ...(isV ? [vert[0]] : [...horiz[1]].slice(0, 12))], ...span(ctx, nos), evidence: cap(nos), signals, benign, facts: { source: src, target: isV ? vert[0] : `${horiz[1].size} hosts`, targetIp: isV ? vert[0] : '', mode: isV ? 'vertical' : 'horizontal', ports: isV ? vert[1].size : 1, hosts: isV ? 1 : horiz[1].size, open: open.slice(0, 20).map(String), benignKind: known ? 'Authorised-looking vulnerability scanner' : '' } });
+    out.push({ detector: 'scan', topic: 'scan', hypotheses: ['port-scan'], hosts: [src, ...(isV ? [vert[0]] : [...perHost.keys()].slice(0, 12))], ...span(ctx, nos), evidence: cap(nos), signals, benign, facts: { source: src, target: isV ? vert[0] : `${fan} hosts`, targetIp: isV ? vert[0] : '', mode: isV ? 'vertical' : 'horizontal', ports: isV ? vert[1].size : perPort.size, hosts: isV ? 1 : fan, open: open.slice(0, 20).map(String), benignKind: known ? 'Authorised-looking vulnerability scanner' : '' } });
   }
   return { cands: out, sources };
 }
@@ -295,18 +333,22 @@ export function reachability(ctx: Ctx, skip: Set<string>): Candidate[] {
   const bySvc = new Map<string, Flow[]>();
   for (const f of ctx.flows) if (f.proto === 'TCP' && f.syn.length && !f.est && !f.rst.length && !skip.has(f.a)) { const k = `${f.b}:${f.pb}`; (bySvc.get(k) ?? bySvc.set(k, []).get(k)!).push(f); }
   const out: Candidate[] = [];
-  for (const fs of bySvc.values()) {
+  const worked = new Map<string, Flow[]>(), unreachable = new Map<string, Pkt[]>();
+  for (const f of ctx.flows) if (f.est) (worked.get(`${f.b}:${f.pb}`) ?? worked.set(`${f.b}:${f.pb}`, []).get(`${f.b}:${f.pb}`)!).push(f);
+  for (const p of ctx.pkts) if (p.icmp?.type === 3 && p.icmp.code !== 4 && p.icmp.innerDst) (unreachable.get(p.icmp.innerDst) ?? unreachable.set(p.icmp.innerDst, []).get(p.icmp.innerDst)!).push(p);
+  for (const fs of [...bySvc.values()].sort((a, b) => b.length - a.length).slice(0, 50)) {
     const f0 = fs[0]!, syns = fs.flatMap((f) => f.syn.map((s) => s.no));
     if (syns.length < T.OUTAGE_MIN_SYN) continue;
     const sources = uniq(fs.map((f) => f.a));
     const answered = fs.filter((f) => f.synAck.length);
-    const earlier = ctx.flows.filter((f) => f.b === f0.b && f.pb === f0.pb && f.est);
-    const lastOk = earlier.length ? Math.max(...earlier.map((f) => f.t1)) : 0;
+    const earlier = worked.get(`${f0.b}:${f0.pb}`) ?? [];
+    const lastOk = earlier.reduce((n, f) => Math.max(n, f.t1), 0);
     const backoffs = fs.filter((f) => f.syn.length >= 3 && f.syn.slice(2).every((s, i) => s.ts - f.syn[i + 1]!.ts > (f.syn[i + 1]!.ts - f.syn[i]!.ts) * 1.4));
-    const icmp = ctx.pkts.filter((p) => p.icmp?.type === 3 && p.icmp.code !== 4 && p.icmp.innerDst === f0.b);
+    const icmp = unreachable.get(f0.b) ?? [];
     const dur = Math.max(0.01, ctx.get(syns.at(-1)!).ts - ctx.get(syns[0]!).ts), rate = syns.length / dur;
     const signals: Signal[] = [];
-    const isFlood = sources.length >= T.FLOOD_SOURCES && syns.length >= T.FLOOD_HALF_OPEN;
+    const firstTs = ctx.get(syns[0]!).ts, lastTs = ctx.get(syns.at(-1)!).ts, pace = syns.length / Math.max(0.01, lastTs - firstTs);
+    const isFlood = (sources.length >= T.FLOOD_SOURCES && syns.length >= T.FLOOD_HALF_OPEN) || (syns.length >= T.FLOOD_HALF_OPEN * 3 && pace > 50);
     if (isFlood) signals.push(sig('many-sources', `${syns.length} half-open attempts from ${sources.length} sources hit ${f0.b} port ${f0.pb}.`, { 'syn-flood': 3, 'server-outage': -1, benign: -2 }, syns));
     if (rate > 50) signals.push(sig('rate', `${Math.round(rate)} attempts per second.`, { 'syn-flood': 1.5, 'server-outage': -1 }, syns));
     if (answered.length >= fs.length * 0.5 && isFlood) signals.push(sig('half-open', `The server answered ${answered.length} SYNs and the sources never finished: they did not want a connection.`, { 'syn-flood': 2.5, 'server-outage': -2 }, answered.flatMap((f) => f.synAck)));
@@ -389,14 +431,32 @@ export function dnsTunnel(ctx: Ctx): Candidate[] {
   for (const p of ctx.pkts) {
     if (p.dns?.kind !== 'dns' || p.dns.qr) continue;
     const l = p.dns.qname.split('.')[0] ?? '';
-    if (l.length >= T.TUNNEL_LABEL && entropy(l) >= T.TUNNEL_ENTROPY) { const k = parentOf(p.dns.qname); (by.get(k) ?? by.set(k, []).get(k)!).push(p); }
+    if (l.length >= T.TUNNEL_SHORT_LABEL && entropy(l) >= T.TUNNEL_ENTROPY) { const k = parentOf(p.dns.qname); (by.get(k) ?? by.set(k, []).get(k)!).push(p); }
   }
   const out: Candidate[] = [];
   for (const [dom, ps] of by) {
-    if (ps.length < T.TUNNEL_MIN_QUERIES) continue;
+    const long = ps.filter((p) => (p.dns!.qname.split('.')[0] ?? '').length >= T.TUNNEL_LABEL).length;
+    if (long < T.TUNNEL_MIN_QUERIES && ps.length < T.TUNNEL_SHORT_QUERIES) continue;
     const nos = ps.map((p) => p.no);
     const bytes = ps.reduce((n, p) => n + p.dns!.qname.length, 0);
     out.push({ detector: 'tunnel', topic: 'tunnel', hypotheses: ['dns-tunnel'], hosts: uniq(ps.map((p) => p.src!)), ...span(ctx, nos), evidence: cap(nos), signals: [sig('long-labels', `${ps.length} lookups under ${dom} carry long random-looking labels, about ${bytes} bytes hidden in names.`, { 'dns-tunnel': 4, benign: -2 }, nos)], benign: [], facts: { domain: dom, count: ps.length, bytes, host: ps[0]!.src!, resolver: ps[0]!.dst! } });
+  }
+  return out;
+}
+
+export function txtTunnel(ctx: Ctx): Candidate[] {
+  const by = new Map<string, { bytes: number; nos: number[]; host: string; resolver: string }>();
+  for (const p of ctx.pkts) {
+    if (p.dns?.kind !== 'dns' || !p.dns.qr) continue;
+    const size = p.dns.answers.reduce((n, a) => n + (a.type === 16 ? a.data.length : 0), 0);
+    if (!size) continue;
+    const k = parentOf(p.dns.qname), e = by.get(k) ?? by.set(k, { bytes: 0, nos: [], host: p.dst ?? '', resolver: p.src ?? '' }).get(k)!;
+    e.bytes += size; e.nos.push(p.no);
+  }
+  const out: Candidate[] = [];
+  for (const [dom, e] of by) {
+    if (e.bytes < T.TXT_TUNNEL_BYTES || e.nos.length < T.TUNNEL_MIN_QUERIES) continue;
+    out.push({ detector: 'tunnel', topic: 'tunnel', hypotheses: ['dns-tunnel'], hosts: [e.host], ...span(ctx, e.nos), evidence: cap(e.nos), signals: [sig('txt-data', `${e.nos.length} TXT replies under ${dom} carried about ${e.bytes} bytes. Normal TXT records are few and short.`, { 'dns-tunnel': 4, benign: -2 }, e.nos)], benign: [], facts: { domain: dom, count: e.nos.length, bytes: e.bytes, host: e.host, resolver: e.resolver } });
   }
   return out;
 }
@@ -427,7 +487,7 @@ export function behaviour(ctx: Ctx): Candidate[] {
     const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
     const sd = Math.sqrt(gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / gaps.length);
     const f0 = fs[0]!;
-    if (mean < T.BEACON_MIN_S || sd / mean > T.BEACON_JITTER) continue;
+    if (mean < T.BEACON_MIN_S || sd / mean > (f0.domain ? T.BEACON_JITTER : T.BEACON_JITTER_NO_NAME)) continue;
     const nos = fs.map((f) => f.first);
     if (f0.pb === 123 || (f0.domain && /(ntp|time\.|windowsupdate|apple\.com|gstatic)/.test(f0.domain))) continue;
     out.push({ detector: 'behaviour', topic: 'beacon', hypotheses: ['beaconing'], hosts: [f0.a, f0.b], ...span(ctx, nos), evidence: cap(nos), signals: [sig('rhythm', `${f0.a} called ${f0.domain ?? f0.b} ${fs.length} times, every ${mean.toFixed(1)} s with only ${(100 * sd / mean).toFixed(1)}% jitter. People are not this regular.`, { beaconing: 3.5, benign: -1.5 }, nos)], benign: [check('known-service', 'A well-known update or time service', false)], facts: { host: f0.a, peer: f0.b, port: f0.pb, every: +mean.toFixed(1), count: fs.length, domain: f0.domain ?? '' } });
@@ -436,14 +496,14 @@ export function behaviour(ctx: Ctx): Candidate[] {
 }
 
 export function evasion(ctx: Ctx, fileAnomalies: Map<string, number>): Candidate[] {
-  const hits = ctx.pkts.filter((p) => p.anomalies?.length);
+  const hits = ctx.pkts.filter((p) => p.anomalies?.length), seen = new Set(hits);
   const frags = new Map<string, Pkt[]>();
   for (const p of ctx.pkts) if (p.mf || p.fragOff) { const k = `${p.src}|${p.dst}|${p.ipId}`; (frags.get(k) ?? frags.set(k, []).get(k)!).push(p); }
   for (const list of frags.values()) {
     const sorted = list.slice().sort((a, b) => (a.fragOff ?? 0) - (b.fragOff ?? 0));
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1]!, end = (prev.fragOff ?? 0) + (prev.ipLen ?? 20) - 20;
-      if ((sorted[i]!.fragOff ?? 0) < end) { const p = sorted[i]!; (p.anomalies ??= []).push('Overlapping IP fragments'); if (!hits.includes(p)) hits.push(p); }
+      if ((sorted[i]!.fragOff ?? 0) < end) { const p = sorted[i]!; (p.anomalies ??= []).push('Overlapping IP fragments'); if (!seen.has(p)) { seen.add(p); hits.push(p); } }
     }
   }
   if (!hits.length) return [];
@@ -457,8 +517,11 @@ export function evasion(ctx: Ctx, fileAnomalies: Map<string, number>): Candidate
 
 export function runDetectors(ctx: Ctx, fileAnomalies: Map<string, number>): Candidate[] {
   const { cands, sources } = scans(ctx);
-  return [
-    ...identity(ctx), ...rogueDhcp(ctx), ...dhcpFailure(ctx), ...dnsHijack(ctx), ...dnsHealth(ctx), ...cands, ...tcpHealth(ctx, sources),
-    ...reachability(ctx, sources), ...mtu(ctx), ...delay(ctx), ...nameSpoof(ctx), ...dnsTunnel(ctx), ...behaviour(ctx), ...evasion(ctx, fileAnomalies),
+  const all = [
+    ...identity(ctx), ...rogueDhcp(ctx), ...dhcpFailure(ctx), ...dhcpStarvation(ctx), ...dnsHijack(ctx), ...dnsHealth(ctx), ...cands, ...otherScans(ctx), ...tcpHealth(ctx, sources),
+    ...rstInjection(ctx), ...icmpRedirect(ctx), ...icmpTunnel(ctx), ...bruteForce(ctx), ...loginGuessing(ctx), ...macFlood(ctx), ...udpBeacon(ctx), ...exfil(ctx), ...floods(ctx), ...reflection(ctx), ...slowloris(ctx), ...rogueRouter(ctx), ...vlanHopping(ctx), ...landAttack(ctx),
+    ...reachability(ctx, sources), ...mtu(ctx), ...delay(ctx), ...nameSpoof(ctx), ...dnsTunnel(ctx), ...txtTunnel(ctx), ...behaviour(ctx), ...evasion(ctx, fileAnomalies),
   ];
+  // Biggest evidence first, so a flood of minor items cannot push a real finding out of the report.
+  return all.length > T.MAX_CANDIDATES ? all.sort((a, b) => b.evidence.length - a.evidence.length).slice(0, T.MAX_CANDIDATES) : all;
 }

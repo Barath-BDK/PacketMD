@@ -1,0 +1,219 @@
+[
+ {
+  "file": "arp-low-rate",
+  "must": [
+   "arp-spoof"
+  ],
+  "why": "Only two forged replies, just under the burst threshold"
+ },
+ {
+  "file": "arp-spoof-peer",
+  "must": [
+   "arp-spoof"
+  ],
+  "why": "Targets a workstation, not the gateway"
+ },
+ {
+  "file": "arp-fake-failover",
+  "must": [
+   "arp-spoof"
+  ],
+  "why": "Announces once like a failover, but the real gateway is still forwarding traffic"
+ },
+ {
+  "file": "arp-vlan-tagged",
+  "must": [
+   "arp-spoof"
+  ],
+  "why": "Same spoof inside VLAN tags"
+ },
+ {
+  "file": "scan-fake-scanner-name",
+  "must": [
+   "port-scan"
+  ],
+  "why": "SYN scan that claims to be Nessus in one HTTP request"
+ },
+ {
+  "file": "scan-slow",
+  "must": [
+   "port-scan"
+  ],
+  "why": "One probe every 25 seconds"
+ },
+ {
+  "file": "scan-just-under",
+  "must": [
+   "port-scan"
+  ],
+  "why": "Twelve ports, just below the fifteen-port threshold"
+ },
+ {
+  "file": "scan-fin",
+  "must": [
+   "port-scan"
+  ],
+  "why": "Stealth FIN scan, sends no SYN at all"
+ },
+ {
+  "file": "scan-null",
+  "must": [
+   "port-scan"
+  ],
+  "why": "Stealth NULL scan, sends no SYN at all"
+ },
+ {
+  "file": "scan-xmas",
+  "must": [
+   "port-scan"
+  ],
+  "why": "Stealth XMAS scan, sends no SYN at all"
+ },
+ {
+  "file": "scan-udp",
+  "must": [
+   "port-scan"
+  ],
+  "why": "UDP port scan"
+ },
+ {
+  "file": "scan-ping-sweep",
+  "must": [
+   "port-scan"
+  ],
+  "why": "ICMP sweep of the subnet"
+ },
+ {
+  "file": "scan-arp",
+  "must": [
+   "port-scan"
+  ],
+  "why": "ARP sweep of the subnet"
+ },
+ {
+  "file": "scan-ipv6",
+  "must": [
+   "port-scan"
+  ],
+  "why": "SYN scan over IPv6"
+ },
+ {
+  "file": "dns-forged-from-resolver-ip",
+  "must": [
+   "dns-hijack"
+  ],
+  "why": "Forged answer sent as the real resolver, from a different MAC, with a public address"
+ },
+ {
+  "file": "dhcp-fake-home-router",
+  "must": [
+   "rogue-dhcp-attack"
+  ],
+  "why": "Spoofs a home-router MAC, but then forges DNS answers"
+ },
+ {
+  "file": "dhcp-only-server-foreign",
+  "must": [
+   "rogue-dhcp-attack"
+  ],
+  "why": "The only DHCP server seen hands out a gateway outside the client subnet"
+ },
+ {
+  "file": "dhcp-starvation",
+  "must": [
+   "dhcp-starvation"
+  ],
+  "why": "One attacker requests leases as 150 invented devices"
+ },
+ {
+  "file": "flood-few-sources",
+  "must": [
+   "syn-flood"
+  ],
+  "why": "Heavy SYN flood from only six sources, under the source threshold"
+ },
+ {
+  "file": "llmnr-two-names",
+  "must": [
+   "llmnr-poison"
+  ],
+  "why": "Answers only two names, then takes an SMB connection"
+ },
+ {
+  "file": "tunnel-short-labels",
+  "must": [
+   "dns-tunnel"
+  ],
+  "why": "24-character labels, under the 30-character threshold"
+ },
+ {
+  "file": "beacon-jittered",
+  "must": [
+   "beaconing"
+  ],
+  "why": "Beacon with 20% random jitter"
+ },
+ {
+  "file": "rst-injection",
+  "must": [
+   "rst-injection"
+  ],
+  "why": "Forged resets kill live connections, sent from the wrong MAC"
+ },
+ {
+  "file": "icmp-redirect",
+  "must": [
+   "icmp-redirect"
+  ],
+  "why": "Forged ICMP redirect steers a client through the attacker"
+ },
+ {
+  "file": "ssh-brute-force",
+  "must": [
+   "brute-force"
+  ],
+  "why": "Forty short SSH connections, a password-guessing rhythm"
+ },
+ {
+  "file": "mac-flood",
+  "must": [
+   "mac-flood"
+  ],
+  "why": "800 invented MACs to overflow the switch table"
+ },
+ {
+  "file": "clean-busy-browser",
+  "must": null,
+  "why": "A browser opening fourteen sites"
+ },
+ {
+  "file": "clean-dev-server",
+  "must": null,
+  "why": "A developer using six ports on a test machine"
+ },
+ {
+  "file": "clean-morning-dhcp",
+  "must": null,
+  "why": "Thirty real devices all joining at nine o'clock"
+ },
+ {
+  "file": "clean-ping-monitor",
+  "must": null,
+  "why": "A monitor pinging six servers"
+ },
+ {
+  "file": "clean-arp-busy-host",
+  "must": null,
+  "why": "A host resolving sixteen neighbours"
+ },
+ {
+  "file": "clean-git-over-ssh",
+  "must": null,
+  "why": "Eight git pulls over SSH with real data"
+ },
+ {
+  "file": "clean-mail-polling",
+  "must": null,
+  "why": "A mail app polling roughly every five minutes"
+ }
+]

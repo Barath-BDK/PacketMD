@@ -59,7 +59,7 @@ export function attribute(ctx: Ctx): ActivityRow[] {
     const ratingVal: ActivityRow['rating'] = score >= 3 ? 'Likely malicious' : score >= 1 ? 'Suspicious' : daemon || (f.domain && CDN.test(f.domain)) ? 'Clean-looking' : f.domain ? 'Clean-looking' : 'Unknown';
     rows.push({
       domain, source: hidden ? `Hidden by ${hidden}` : f.domainSource ?? 'No name seen, address only', sourcePacket: f.domainPacket ?? f.first, klass, basis,
-      bytesIn, bytesOut, first: Math.min(...fs.map((x) => x.t0)), last: Math.max(...fs.map((x) => x.t1)), requests: fs.length, protocol: f.proto,
+      bytesIn, bytesOut, first: fs.reduce((n, x) => Math.min(n, x.t0), Infinity), last: fs.reduce((n, x) => Math.max(n, x.t1), -Infinity), requests: fs.length, protocol: f.proto,
       health: fs.reduce((n, x) => n + x.retrans.length + x.rst.length, 0), rating: ratingVal, reasons, conv: fs.slice(0, 40).map((x) => x.id),
     });
   }
