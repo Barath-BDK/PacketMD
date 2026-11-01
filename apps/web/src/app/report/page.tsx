@@ -41,14 +41,14 @@ function Verdict({ r }: { r: Report }) {
           <button type="button" className="btn" onClick={() => exportJson(r)}>JSON</button>
           <button type="button" className="btn" onClick={() => window.print()}>Print to PDF</button>
         </div></div>
-        <div><h3>Keep</h3><div className="acts">
+        {!c.archived && <div><h3>Keep</h3><div className="acts">
           <button type="button" className="btn" aria-pressed={!!c.baseline} onClick={() => c.setBaseline(c.baseline ? null : r.baseline)}>{c.baseline ? 'Baseline saved' : 'Save as known-good baseline'}</button>
           {hasBackend && <button type="button" className="btn" onClick={() => saveReport(r).then(setShare)}>Save to my investigations</button>}
-        </div></div>
-        {hasBackend && <div><h3>Share</h3><div className="acts">
+        </div></div>}
+        {hasBackend && !c.archived && <div><h3>Share</h3><div className="acts">
           <button type="button" className="btn" onClick={() => shareReport(r).then((t) => setShare(`${location.origin}/share?t=${t}`), (e) => setShare((e as Error).message))}>Create share link</button>
         </div></div>}
-        {(share || hasBackend) && <p style={{ flexBasis: '100%', margin: 0, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere' }} role="status">{share ? <>{share} {share.startsWith('http') && <Copy text={share} />}</> : <span className="muted">Share links carry findings with addresses replaced, never packets.</span>}</p>}
+        {(share || (hasBackend && !c.archived)) && <p style={{ flexBasis: '100%', margin: 0, fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere' }} role="status">{share ? <>{share} {share.startsWith('http') && <Copy text={share} />}</> : <span className="muted">Share links carry findings with addresses replaced, never packets.</span>}</p>}
       </div>
       {c.level !== 'beginner' && <div className="veil" style={{ padding: 16, marginTop: 24 }}>
         <h3 className="sm" style={{ marginTop: 0 }}>Protocol mix</h3>
@@ -92,7 +92,7 @@ function Activity({ r }: { r: Report }) {
     <div className="veil" style={{ padding: 16 }}>
       <p className="muted" style={{ marginTop: 0, maxWidth: '70ch', lineHeight: 1.5 }}>A capture holds no process names or user accounts, so these are inferred classes with the basis shown. Checks here are offline only: nothing leaves your browser.</p>
       <div style={{ overflowX: 'auto' }}><table className="t"><thead><tr><th scope="col">{b ? 'Site or service' : 'Domain'}</th>{!b && <th scope="col">How we know</th>}<th scope="col">{b ? 'Looks like' : 'Class'}</th><th scope="col">Down / up</th>{!b && <th scope="col">Connections</th>}{!b && <th scope="col">Trouble</th>}<th scope="col">Rating</th></tr></thead>
-        <tbody>{r.activity.map((x) => <tr key={x.domain}><td><button type="button" className="cr-btn st link" onClick={() => { c.setFilter(x.conv.length && x.source.startsWith('No name') ? `host == ${x.domain}` : `domain == ${x.domain}`); c.setTab('investigator'); }}>{x.domain}</button></td>{!b && <td className="dat">{x.source}, <Proof nos={[x.sourcePacket]} /></td>}<td>{x.klass}{a && <div className="sm">{x.basis.join(', ')}</div>}</td><td className="dat">{kb(x.bytesIn)} / {kb(x.bytesOut)}</td>{!b && <td className="dat">{x.requests}</td>}{!b && <td className="dat">{x.health}</td>}<td className={x.rating === 'Clean-looking' || x.rating === 'Unknown' ? '' : 'ac'}>{x.rating}{x.reasons.length ? <div className="sm">{x.reasons.join('. ')}</div> : null}</td></tr>)}</tbody></table></div>
+        <tbody>{r.activity.map((x) => <tr key={x.domain}><td>{c.archived ? x.domain : <button type="button" className="cr-btn st link" onClick={() => { c.setFilter(x.conv.length && x.source.startsWith('No name') ? `host == ${x.domain}` : `domain == ${x.domain}`); c.setTab('investigator'); }}>{x.domain}</button>}</td>{!b && <td className="dat">{x.source}, <Proof nos={[x.sourcePacket]} /></td>}<td>{x.klass}{a && <div className="sm">{x.basis.join(', ')}</div>}</td><td className="dat">{kb(x.bytesIn)} / {kb(x.bytesOut)}</td>{!b && <td className="dat">{x.requests}</td>}{!b && <td className="dat">{x.health}</td>}<td className={x.rating === 'Clean-looking' || x.rating === 'Unknown' ? '' : 'ac'}>{x.rating}{x.reasons.length ? <div className="sm">{x.reasons.join('. ')}</div> : null}</td></tr>)}</tbody></table></div>
     </div>
   );
 }
@@ -150,17 +150,20 @@ export default function ReportPage() {
       <div className="rise d3"><Scan onClick={() => go('/')}>Open a capture</Scan></div></div>
   );
   const n = r.findings.filter((f) => f.lane !== 'BENIGN').length;
+  // A saved report has no packets, and its labelled addresses cannot be compared with a new capture.
+  const tabList = c.archived ? TABS.filter(([id]) => id !== 'investigator' && id !== 'verify') : TABS;
   const [head, ...rest] = r.headline.split('. ');
   return (
     <div className="pad" style={{ paddingTop: 36 }}>
       <p className="sm" style={{ margin: '0 0 6px' }}>{r.defense.fileName}, SHA-256 {r.defense.sha256.slice(0, 16)}...</p>
+      {c.archived && <p className="archived"><span>Saved investigation from {new Date(c.archived).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. Packets are never stored, so open the original capture to inspect them.</span><Hv onClick={() => go('/investigations')}>Back to my investigations</Hv></p>}
       <h1 className="disp report-title rise d1">{head}. {rest.length > 0 && <span className="ac">{rest.join('. ')}</span>}</h1>
       <div>
         <div ref={anchor} style={{ height: 12 }} />
         <div className="tabbar">
         <div ref={box} role="tablist" aria-label="Report sections" className="tabs ink-wrap">
           <i ref={ink as React.RefObject<HTMLElement>} className="ink" />
-          {TABS.map(([id, label]) => <Hv key={id} role="tab" className="tab" aria-selected={c.tab === id} onClick={() => c.setTab(id)}>{label}{id === 'findings' && n ? ` ${n}` : ''}</Hv>)}
+          {tabList.map(([id, label]) => <Hv key={id} role="tab" className="tab" aria-selected={c.tab === id} onClick={() => c.setTab(id)}>{label}{id === 'findings' && n ? ` ${n}` : ''}</Hv>)}
         </div>
           <Levels />
         </div>

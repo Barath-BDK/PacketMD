@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { deleteReport, savedReports, sb, type SavedReport } from '@/lib/backend';
+import { deleteReport, fullReport, savedReports, sb, type SavedReport } from '@/lib/backend';
+import { useCase } from '@/lib/engine';
 import { Lane } from '@/report/parts';
 import { Scan, useShell } from '@/shell/Shell';
 
@@ -9,8 +10,18 @@ const when = (d: string) => new Date(d).toLocaleString(undefined, { dateStyle: '
 
 function Details({ r, gone }: { r: SavedReport; gone(): void }) {
   const [sure, setSure] = useState(false), [msg, setMsg] = useState('');
+  const c = useCase(), { go } = useShell();
+  const view = async () => {
+    setMsg('Opening');
+    const full = await fullReport(r.id);
+    if (!full) { setMsg('This one was saved before full reports existed. Open the capture again and save it to replace it.'); return; }
+    c.openSaved(full, r.created_at);
+    go('/report');
+  };
   return (
-    <div className="flip" style={{ padding: '4px 16px 20px' }}>
+    <div className="flip" style={{ padding: '12px 16px 20px' }}>
+      <p style={{ margin: '0 0 12px' }}><Scan tight onClick={() => void view()}>View full investigation</Scan></p>
+      <p className="muted" style={{ marginTop: 0, lineHeight: 1.5 }}>Reopens the verdict, findings, differential, story, fix plan, timeline, hosts and activity.</p>
       <p className="dat" style={{ overflowWrap: 'anywhere' }}>SHA-256 {r.file_sha256}</p>
       {r.findings.length === 0 && <p style={{ lineHeight: 1.5 }}>No faults or attacks were found in this capture.</p>}
       {r.findings.map((f) => (
@@ -72,11 +83,11 @@ export default function Investigations() {
     <div className="pad">
       <h1 className="disp h2 rise d1">Your investigations</h1>
       <p className="muted rise d2" style={{ maxWidth: '62ch', lineHeight: 1.5 }}>{list.length} saved. These hold findings only, never packets, and addresses are replaced with labels such as host-3.</p>
-      <div className="veil" style={{ marginTop: 16 }}>
+      <div className="inv-list">
         {list.map((r) => {
           const on = open === r.id;
           return (
-            <div key={r.id} style={{ borderBottom: '1px solid var(--line)' }}>
+            <div key={r.id} className="inv-card">
               <button type="button" className={`inv-row ${on ? 'on' : ''}`} aria-expanded={on} onClick={() => setOpen(on ? null : r.id)}>
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontWeight: 600, overflowWrap: 'anywhere' }}>{r.file_name ?? 'Unnamed capture'}</span>

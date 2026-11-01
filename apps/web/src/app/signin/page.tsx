@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import type { User } from '@supabase/supabase-js';
 import { checkPassword, isDisposableEmail, passwordOk } from '@packetmd/core';
 import { hasBackend, roleOf, sb } from '@/lib/backend';
-import { Hv, Scan, useShell } from '@/shell/Shell';
+import { LogoutIcon, Scan, useShell } from '@/shell/Shell';
 
 function Password({ label, value, onChange, auto, placeholder, describedBy }: { label: string; value: string; onChange(v: string): void; auto: string; placeholder?: string; describedBy?: string }) {
   const [show, setShow] = useState(false);
@@ -52,7 +52,7 @@ export default function SignIn() {
   const [mode, setMode] = useState<'login' | 'create'>('login');
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false);
   const [user, setUser] = useState<User | null>(null), [role, setRole] = useState<string | null>(null);
-  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false), [note, setNote] = useState('');
   const resend = async () => {
     const { error } = (await sb?.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${location.origin}/signin` } })) ?? {};
     setMsg(error ? 'Please wait a minute before asking for another email.' : 'Sent. Check your inbox and spam folder.');
@@ -61,6 +61,11 @@ export default function SignIn() {
   const tempMail = creating && isDisposableEmail(email);
 
   useEffect(() => { sb?.auth.getUser().then(async ({ data }) => { setUser(data.user); setRole(await roleOf(data.user)); }); }, []);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('welcome')) setNote('Your email is confirmed. Welcome to PacketMD.');
+    if (q.get('link') === 'expired') setMsg('That email link has expired or was already used. Log in, and if your email is not confirmed you can ask for a new one.');
+  }, []);
   const card = useRef<HTMLDivElement>(null), body = useRef<HTMLFormElement>(null);
   // The card resizes and its contents slide across, so the page itself never changes.
   const switchTo = (m: 'login' | 'create') => {
@@ -111,10 +116,11 @@ export default function SignIn() {
         </form>}
         {user && <>
           <h1 className="disp h2" style={{ margin: 0 }}>Welcome back</h1>
+          {note && <p role="status" style={{ margin: 0, lineHeight: 1.45 }}>{note}</p>}
           <p style={{ margin: 0 }}>Signed in as <strong>{role === 'admin' ? 'Admin' : 'Analyst'}</strong>.</p>
           {role === 'admin' && <Scan onClick={() => go('/admin')}>Open admin</Scan>}
           <Scan onClick={() => go('/investigations')}>My investigations</Scan>
-          <Hv onClick={() => sb?.auth.signOut().then(() => { setUser(null); setRole(null); })}>Log out</Hv>
+          <button type="button" className="btn logout wide" onClick={() => void sb?.auth.signOut().then(() => { setUser(null); setRole(null); setNote(''); })}><LogoutIcon /><span>Log out</span></button>
         </>}
         {msg && <p role="status" className="ac" style={{ margin: 0, lineHeight: 1.45 }}>{msg}</p>}
         {unconfirmed && <button type="button" className="btn" onClick={() => void resend()}>Send the email again</button>}

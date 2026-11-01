@@ -37,7 +37,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 - Investigator: packet list, decoded tree, hex view with field highlighting, our own filter language, Follow Stream, copy as Wireshark filter or BPF
 - Activity: domain attribution from SNI, HTTP Host and DNS, inferred traffic class, offline reputation checks
 - Known-good baseline, Markdown and JSON export, print to PDF, optional accounts and share links
-- Investigations: logged-in users can review, open and delete the reports they chose to save
+- Investigations: logged-in users can reopen, in full, the reports they chose to save, and delete them. Packets are never stored and addresses are replaced with labels, so Investigator and Verify Fix need the original capture
 
 **Detects**
 

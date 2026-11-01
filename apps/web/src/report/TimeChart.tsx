@@ -24,12 +24,17 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
     const proof = new Set((focus === 'all' ? shown : shown.filter((f) => f.id === focus)).flatMap((f) => f.evidence.map((e) => e.no)));
     const out = Array.from({ length: bins }, () => ({ all: 0, hot: 0, first: 0 }));
     const w = (b - a) / bins;
-    for (const row of r.rows) {
+    const slot = (ts: number) => out[Math.min(bins - 1, Math.floor((ts - a) / w))]!;
+    if (r.rows.length) for (const row of r.rows) {
       if (row.ts < a || row.ts >= b) continue;
-      const bin = out[Math.min(bins - 1, Math.floor((row.ts - a) / w))]!, v = metric === 'pkts' ? 1 : row.len;
+      const bin = slot(row.ts), v = metric === 'pkts' ? 1 : row.len;
       bin.all += v;
       if (proof.has(row.no)) bin.hot += v;
       bin.first ||= row.no;
+    } else {
+      // A saved report keeps per-period totals and proof packets, never the packet list.
+      for (const t of r.timeline) if (t.t >= a && t.t < b) slot(t.t).all += metric === 'pkts' ? t.pkts : t.bytes;
+      if (metric === 'pkts') for (const f of (focus === 'all' ? shown : shown.filter((x) => x.id === focus))) for (const e of f.evidence) if (e.ts >= a && e.ts < b) { const bin = slot(e.ts); bin.hot = Math.min(bin.hot + 1, bin.all); }
     }
     return out;
   }, [r, a, b, bins, metric, focus, shown]);
@@ -84,7 +89,7 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
           <div className="dat axis" aria-hidden="true">{[0, 0.25, 0.5, 0.75, 1].map((f) => <span key={f}>{stamp(a + f * (b - a))}</span>)}</div>
         </div>
       </div>
-      <p className="sm" style={{ marginBottom: compact ? 0 : undefined }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? 'Click a bar to open its packets.' : 'Drag across the chart to zoom in. Click a bar to open its packets.'}</p>
+      <p className="sm" style={{ marginBottom: compact ? 0 : undefined }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? (r.rows.length ? 'Click a bar to open its packets.' : '') : `Drag across the chart to zoom in.${r.rows.length ? ' Click a bar to open its packets.' : ''}`}</p>
       {!compact && shown.length > 0 && <div role="group" aria-label="Problems in this capture">
         <h3 className="sm" style={{ margin: '16px 0 4px' }}>Click a problem to focus on it</h3>
         {shown.map((f) => <button type="button" key={f.id} className="tl-prob" aria-pressed={focus === f.id} onClick={() => pick(f)}>

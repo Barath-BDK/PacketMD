@@ -14,6 +14,7 @@ export function Copy({ text, label = 'Copy' }: { text: string; label?: string })
 
 export function Proof({ nos }: { nos: number[] }) {
   const c = useCase();
+  if (c.archived) return <>{nos.slice(0, 10).map((n) => <span key={n} className="sm" style={{ marginRight: 10 }}>#{n}</span>)}</>;
   return <>{nos.slice(0, 10).map((n) => <button type="button" key={n} className="cr-btn chip" aria-label={`Open packet ${n}`} onClick={() => { c.setJump(n); c.setTab('investigator'); }}>#{n}</button>)}{nos.length > 10 && <span className="sm">+{nos.length - 10} more</span>}</>;
 }
 
@@ -102,6 +103,7 @@ export function FixPlan({ r }: { r: Report }) {
   if (!todo.length) return <p>Nothing to fix in this capture.</p>;
   return (
     <div>
+      {c.archived && <p className="muted" style={{ lineHeight: 1.5, marginTop: 0 }}>Saved reports replace addresses with labels such as host-3, so swap in the real values before running these commands, or open the original capture for exact ones.</p>}
       <div role="group" aria-label="Platform" className="flt" style={{ marginTop: 0 }}>
         {(['windows', 'linux', 'router'] as const).map((o) => <button type="button" key={o} className="btn" aria-pressed={os === o} onClick={() => setOs(o)} style={{ textTransform: 'capitalize' }}>{o}</button>)}
       </div>

@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Lenis from 'lenis';
-import { sb } from '@/lib/backend';
+import { arrival, sb } from '@/lib/backend';
 import { BGS, DIMS, Stage, TRANSITIONS, type Look, type StageApi } from './Stage';
 
 const VERSIONS = ['Original', 'Clearing', 'Tideline', 'Pools', 'Halo'];
@@ -14,6 +14,10 @@ const Ctx = createContext<{ go(href: string): void; jump(el: HTMLElement | null)
 export const useShell = () => useContext(Ctx);
 
 const sceneOf = (p: string) => (p === '/' ? 'home' : p === '/signin' ? 'signin' : 'console');
+
+export function LogoutIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5" /><path d="M15 8l4 4-4 4" /><path d="M19 12H9" /></svg>;
+}
 
 export function Hv({ children, className = '', ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -52,6 +56,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
     const auth = sb?.auth.onAuthStateChange((_e, session) => setSignedIn(!!session));
     return () => auth?.data.subscription.unsubscribe();
   }, []);
+  // Email links land here with a token or an error in the address, so send them somewhere that explains it.
+  useEffect(() => {
+    if (/error_code=/.test(arrival)) router.replace('/signin?link=expired');
+    else if (/type=(signup|email)/.test(arrival)) router.replace('/signin?welcome=1');
+  }, [router]);
   const [mode, setMode] = useState<'dark' | 'light'>('dark');
   const [look, setLook] = useState<Look>({ version: 4, transition: 0, hover: 0, small: 0, bg: 1, dim: 0 });
   const [showLook, setShowLook] = useState(false);
@@ -113,6 +122,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <nav aria-label="Main" className="nav">
               {nav.map(([h, l]) => <Hv key={h} className="under" aria-current={path === h ? 'page' : undefined} onClick={() => go(h)}>{l}</Hv>)}
             </nav>
+            {signedIn && <button type="button" className="btn logout" aria-label="Log out" title="Log out" onClick={() => void sb?.auth.signOut().then(() => go('/'))}><LogoutIcon /><span>Log out</span></button>}
             <Hv className="mt ac" onClick={toggle} aria-label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
               <svg className="turn" aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" style={{ position: 'relative', zIndex: 1, marginRight: 8, verticalAlign: '-2px' }}><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M7 1a6 6 0 0 1 0 12z" fill="currentColor" /></svg>
               {mode === 'dark' ? 'Light' : 'Dark'}

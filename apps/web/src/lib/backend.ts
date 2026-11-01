@@ -1,11 +1,13 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-import { neutralize, type Report } from '@packetmd/core';
-import { payload } from './payload';
+import { ENGINE_SCHEMA, neutralize, type Report } from '@packetmd/core';
+import { fullPayload, payload } from './payload';
 
 export { payload };
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const hasBackend = !!(url && anon);
+// Read before the client below clears the address bar after an email link.
+export const arrival = typeof location === 'undefined' ? '' : location.hash;
 // Guest mode has no client at all: without these values no request can reach a backend.
 export const sb: SupabaseClient | null = hasBackend ? createClient(url!, anon!) : null;
 
@@ -13,9 +15,11 @@ export async function saveReport(r: Report) {
   if (!sb) return 'Backend not configured.';
   const { data } = await sb.auth.getUser();
   if (!data.user) return 'Sign in first. Guest reports stay in this tab.';
+  // Older saves hold a summary only, so saving again replaces them with the full version.
+  await sb.from('reports').delete().eq('owner', data.user.id).eq('file_sha256', r.defense.sha256).is('full_report', null);
   const { data: dup } = await sb.from('reports').select('id').eq('owner', data.user.id).eq('file_sha256', r.defense.sha256).limit(1);
   if (dup?.length) return 'This capture is already in your investigations.';
-  const { error } = await sb.from('reports').insert({ owner: data.user.id, file_name: r.defense.fileName, ...payload(r) });
+  const { error } = await sb.from('reports').insert({ owner: data.user.id, file_name: r.defense.fileName, full_report: fullPayload(r), ...payload(r) });
   return error ? 'Could not save this report.' : 'Saved to your investigations.';
 }
 
@@ -37,6 +41,16 @@ export async function savedReports(): Promise<SavedReport[] | null> {
   if (!me.user) return null;
   const { data, error } = await sb.from('reports').select('id, created_at, file_name, file_sha256, summary, findings').eq('owner', me.user.id).order('created_at', { ascending: false }).limit(100);
   return error ? null : (data as SavedReport[]);
+}
+
+/** Null means it could not be opened, for example a save from before full reports existed. */
+export async function fullReport(id: string): Promise<Report | null> {
+  if (!sb) return null;
+  const { data: me } = await sb.auth.getUser();
+  if (!me.user) return null;
+  const { data } = await sb.from('reports').select('full_report').eq('id', id).eq('owner', me.user.id).maybeSingle();
+  const r = data?.full_report as Report | null | undefined;
+  return r && r.schema === ENGINE_SCHEMA && Array.isArray(r.findings) ? r : null;
 }
 
 export async function deleteReport(id: string) {

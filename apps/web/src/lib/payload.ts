@@ -12,11 +12,17 @@ export function pseudonymize<T>(value: T): T {
   return JSON.parse(text) as T;
 }
 
-/** Findings only. Packet rows, offsets into the file and raw values never go out. */
+/** The whole report for reopening later. Packet rows never go, and every address is replaced with one consistent map. */
+export function fullPayload(r: Report) {
+  return pseudonymize({ ...r, rows: [], baseline: { gateways: {}, dhcpServers: [], resolvers: [], ipMac: {} }, hosts: r.hosts.slice(0, 200), conversations: r.conversations.slice(0, 500), activity: r.activity.slice(0, 300) });
+}
+
+/** Findings only, using the same labels as the full report so one host never gets two names. */
 export function payload(r: Report) {
-  const findings = r.findings.map((f) => pseudonymize({
+  const full = fullPayload(r);
+  const findings = full.findings.map((f) => ({
     id: f.id, lane: f.lane, hypothesis: f.hypothesis, title: f.title, confidence: f.confidence, plain: f.plain, cause: f.cause,
-    whyNotTheOther: f.whyNotTheOther, analogy: f.analogy, verifyBy: f.verifyBy, fixTitles: f.fixSteps.map((s) => s.title), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
+    whyNotTheOther: f.whyNotTheOther, analogy: f.analogy, verifyBy: f.verifyBy, fixTitles: f.fixSteps.map((x) => x.title), proofPackets: f.evidence.slice(0, 20).map((e) => e.no),
   }));
   return { file_sha256: r.defense.sha256, summary: pseudonymize({ headline: r.headline, packets: r.defense.packets, schema: r.schema }), findings };
 }

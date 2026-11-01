@@ -1,4 +1,4 @@
-import { pseudonymize } from '../apps/web/src/lib/payload';
+import { fullPayload, payload, pseudonymize } from '../apps/web/src/lib/payload';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { analyze, BUDGET, checkPassword, isDisposableEmail, decode, gate, neutralize, parseFilter, passwordOk, Rejected, safeText, Sha256, md5, type ByteSource, type RawPacket, type Report } from '@packetmd/core';
@@ -128,6 +128,23 @@ describe('claim-to-packet binding and stories', () => {
         }
       }
     }
+  });
+});
+
+describe('saved report', () => {
+  it('keeps the investigation but no packets or real addresses', async () => {
+    const s = fileSource('samples/mixed-incident.pcap'), r = await analyze(s, 'mixed-incident.pcap');
+    s.close();
+    const full = fullPayload(r), text = JSON.stringify(full);
+    expect(full.rows).toEqual([]);
+    expect(full.findings.length).toBe(r.findings.length);
+    expect(full.findings[0]!.story.length).toBeGreaterThan(0);
+    expect(full.findings[0]!.hypotheses.length).toBeGreaterThan(0);
+    expect(full.timeline.length).toBeGreaterThan(0);
+    expect(text).not.toMatch(/\b\d{1,3}(\.\d{1,3}){3}\b/);
+    expect(text).not.toMatch(/([0-9a-f]{2}:){5}/i);
+    expect(text.length).toBeLessThan(2_500_000);
+    expect(payload(r).findings.map((f) => f.plain)).toEqual(full.findings.map((f) => f.plain));
   });
 });
 
