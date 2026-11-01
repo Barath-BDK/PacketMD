@@ -115,7 +115,7 @@ CLI (Node): same engine, packages/core
 - **Site headers.** Per-request nonce CSP with no `unsafe-eval` in production, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS and COOP.
 - **Passwords.** New accounts need 12 or more characters with mixed case, a number and a symbol, and cannot use runs, common words or the email name. The rule is in `packages/core/src/password.ts` and is checked live as you type. The same minimums must also be set in Supabase Auth, because a browser check alone can be bypassed.
 - **Temporary emails.** Throwaway addresses are refused in the sign-up form and again by a database trigger, so the sign-up API cannot be used to get around the form. The blocklist cannot catch every such service.
-- **Backend.** RLS on every table, owner-only access, no raw payload columns and no client-side way to change a role. Guests have no direct table access. The share function validates with zod, caps body size and rate-limits. The Supabase security advisor reports no issues.
+- **Backend.** RLS on every table, owner-only access, no raw payload columns and no client-side way to change a role. Guests have no direct table access. The share function validates with zod, caps body size and rate-limits. The Supabase security advisor's one open item is leaked-password protection, an Auth setting.
 - **No hardcoded secrets.** Only `.env.example` is tracked, and the anon key is public by design. Gitleaks is part of the CI workflow, kept at `docs/ci.yml` until it is enabled under `.github/workflows/`.
 - **No LLM** is called on user data. Explanations come from deterministic templates.
 
