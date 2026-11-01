@@ -82,7 +82,7 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .ink { position: absolute; left: 0; top: 0; height: 2px; background: var(--ac); pointer-events: none; transition: transform .32s cubic-bezier(.3, .7, .2, 1), width .32s cubic-bezier(.3, .7, .2, 1) }
 .ink-wrap .tab, .ink-wrap .under { border-bottom-color: transparent !important }
 .card h1 { font-size: clamp(30px, 3.4vw, 42px) }
-.pwc { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 14px; background: var(--bg); border: 1px solid var(--line); font-size: 14px }
+.pwc { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 7px; background: var(--bg); border: 1px solid var(--line); font-size: 14px }
 .pwc li { display: flex; align-items: center; gap: 9px; color: var(--muted); transition: color .2s ease }
 .pwc li.ok { color: var(--fg) }
 .pwc svg { flex: none; width: 15px; height: 15px; fill: none; stroke: var(--bar); stroke-width: 1.5; transition: stroke .2s ease }
@@ -116,14 +116,15 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .tab[aria-selected="false"], .under[aria-pressed="false"] { color: var(--muted) }
 .chip { font-family: var(--font-mono), monospace; font-size: 12px; padding: 1px 0; border-bottom: 1px dashed var(--ac); color: var(--fg); margin-right: 10px }
 .chip:hover { color: var(--ac) }
-.lane { display: inline-block; font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; letter-spacing: .06em; border-left: 3px solid var(--bar); padding-left: 8px }
+.lane { display: inline-block; font-family: var(--font-mono), monospace; font-size: 15px; font-weight: 600; letter-spacing: .06em; border-left: 3px solid var(--bar); padding-left: 8px }
 .lane-ATTACK { border-color: var(--ac); color: var(--ac) }
 .lane-FAULT { border-color: var(--fg) }
 .lane-INCONCLUSIVE { border-color: var(--tint); color: var(--tint) }
 .lane-BENIGN { border-color: var(--bar); color: var(--muted) }
 .rowbtn { display: grid; width: 100%; align-items: baseline; gap: 16px; padding: 12px 0; background: none; border: 0; border-bottom: 1px solid var(--line); color: inherit; font: inherit; text-align: left }
 .rowbtn:hover { background: var(--scan) }
-.rowbtn.on { box-shadow: inset 3px 0 0 var(--ac); padding-left: 12px; background: var(--scan) }
+.rowbtn.pick { padding: 10px 14px }
+.rowbtn.on { box-shadow: inset 3px 0 0 var(--ac); background: var(--scan) }
 .lanes { display: grid; gap: 2px }
 .lane-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) auto; gap: 16px; align-items: baseline; width: 100%; padding: 14px 16px; background: var(--veil); border: 0; border-left: 3px solid var(--bar); color: inherit; font: inherit; text-align: left }
 .lane-row:hover { background: var(--scan) }
@@ -181,9 +182,10 @@ table.t td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vert
 details.faq summary { list-style: none; padding: 14px 0; border-bottom: 1px solid var(--line) }
 input[type=checkbox] { accent-color: var(--ac) }
 input[type=range] { appearance: none; width: 100%; height: 16px; background: none; margin: 0 }
-input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--bar) }
-input[type=range]::-webkit-slider-thumb { appearance: none; width: 10px; height: 16px; margin-top: -7px; background: var(--ac) }
-input[type=range]::-moz-range-track { height: 2px; background: var(--bar) }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(var(--ac), var(--ac)) 0 0 / var(--p, 0%) 100% no-repeat, var(--bar) }
+input[type=range]::-webkit-slider-thumb { appearance: none; width: 10px; height: 16px; margin-top: -6px; background: var(--ac) }
+input[type=range]::-moz-range-track { height: 4px; background: var(--bar) }
+input[type=range]::-moz-range-progress { height: 4px; background: var(--ac) }
 input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; border-radius: 0; background: var(--ac) }
 .strip { position: fixed; z-index: 5; left: 40px; right: 12px; bottom: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 22px; font-family: var(--mono); font-size: var(--cap); pointer-events: none }
 .strip > * { pointer-events: auto }
@@ -191,8 +193,11 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 .strip .g { display: flex; align-items: center; gap: 10px; background: var(--panel); padding: 0 6px }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px }
 .grid-side { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px }
-.sign { min-height: calc(100vh - 90px); display: flex; align-items: center; justify-content: center; padding: 40px 16px 72px; box-sizing: border-box }
-.card { width: min(560px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 30px 32px; background: var(--panel); border: 1px solid var(--line) }
+.sign { min-height: calc(100vh - 90px); display: flex; align-items: center; justify-content: center; padding: 20px 16px 44px; box-sizing: border-box }
+.card.wide { width: min(880px, 100%) }
+.auth-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.auth-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start }
+.card { width: min(480px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 30px 32px; background: var(--panel); border: 1px solid var(--line) }
 .pw { position: relative; display: block; margin-top: 6px }
 .pw .cr-input { margin-top: 0; padding-right: 46px }
 .eye { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 36px; height: 36px; display: grid; place-items: center; background: none; border: 0; color: var(--muted); padding: 0; transition: color .2s ease }
@@ -205,7 +210,7 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
 .eye[aria-pressed="true"] .slash { stroke-dashoffset: 1 }
 .eye:active .lid { transform: scaleY(.8) }
 @media (max-width: 860px) {
-  .grid-2, .grid-side, .story, .pk-detail { grid-template-columns: minmax(0, 1fr) }
+  .grid-2, .grid-side, .story, .pk-detail, .auth-grid { grid-template-columns: minmax(0, 1fr) }
   .story { height: auto } .story-g { height: 260px; flex: none } .story-r { overflow: visible }
   .lane-row { grid-template-columns: minmax(0, 1fr) auto }
   .lane-row .sm { grid-column: 1 / -1 }

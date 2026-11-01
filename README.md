@@ -30,7 +30,7 @@ Every signal, weight and proof packet stays visible in the Differential tab.
 - Animated attack stories built only from capture data, each with a real-life analogy, plus "Play whole incident"
 
 **Also included**
-- Verify Fix: open a second capture and get RESOLVED, STILL PRESENT or NEW per finding. Try it with `samples/fix-demo-1-attack.pcap` then `samples/fix-demo-2-after-fix.pcap`
+- Verify Fix: open a second capture and get RESOLVED, STILL PRESENT or NEW per finding. Try it with `samples/mixed-incident.pcap` then `samples/mixed-incident-after-fix.pcap`
 - Causal links between symptoms and root causes, blast radius, and a fix-first order
 - Beginner, Technical and Analyst reading levels
 - Timeline you can adjust: packets or bytes, level of detail, drag to zoom, highlight one problem
@@ -125,7 +125,7 @@ update public.profiles set role = 'admin' where id = '<user id>';
 
 ## Measured accuracy
 
-From `pnpm accuracy` on 27 lab captures, 7 of them clean or benign look-alikes:
+From `pnpm accuracy` on 25 lab captures, 6 of them clean or benign look-alikes:
 
 | Precision | Recall | False-alarm rate |
 |---|---|---|

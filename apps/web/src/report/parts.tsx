@@ -144,7 +144,7 @@ export function Differential({ r }: { r: Report }) {
         {f.benign.length > 0 && <><h4 className="sm" style={{ marginTop: 24 }}>Innocent explanations checked</h4>
           {f.benign.map((x) => <p key={x.id} style={{ margin: '6px 0' }}><span className="sm">{x.matched ? 'Matched' : 'Ruled out'}: </span>{x.label}</p>)}</>}
       </div>
-      <aside aria-label="Cases">{r.findings.map((x) => <button type="button" key={x.id} className={`rowbtn ${x.id === sel ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr' }} onClick={() => set(x.id)}><span>{x.title}</span><Lane l={x.lane} /></button>)}</aside>
+      <aside aria-label="Cases">{r.findings.map((x) => <button type="button" key={x.id} className={`rowbtn pick ${x.id === sel ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr' }} onClick={() => set(x.id)}><span>{x.title}</span><Lane l={x.lane} /></button>)}</aside>
     </div>
   );
 }

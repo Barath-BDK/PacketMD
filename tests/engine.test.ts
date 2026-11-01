@@ -66,16 +66,6 @@ describe('fixes are file-specific', () => {
   });
 });
 
-describe('fix demo pair', () => {
-  it('reports the attack, then RESOLVED on the fixed capture', async () => {
-    const before = await run('fix-demo-1-attack');
-    expect(before.findings.some((f) => f.lane === 'ATTACK' && f.hypothesis === 'arp-spoof')).toBe(true);
-    const rows = diffReports(before, await run('fix-demo-2-after-fix'));
-    expect(rows.filter((x) => x.hypothesis === 'arp-spoof').map((x) => x.status)).toEqual(['RESOLVED']);
-    expect(rows.every((x) => x.status === 'RESOLVED')).toBe(true);
-  });
-});
-
 describe('analyst level', () => {
   it('explains in sentences as well as giving the raw fields', async () => {
     for (const n of ['arp-spoof', 'dns-hijack', 'mtu-blackhole', 'failover-gratuitous-arp', 'arp-gateway-ambiguous']) {

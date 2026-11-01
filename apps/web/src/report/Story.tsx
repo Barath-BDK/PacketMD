@@ -7,6 +7,8 @@ import { Lane, Proof } from './parts';
 
 type Scene = StoryStep & { finding: Finding };
 
+const STEP_MS = 4200;
+
 function Graph({ s, reduced, known }: { s: Scene; reduced: boolean; known: string[] }) {
   const hosts = known.slice(0, 8);
   const pos = (h: string) => { const i = hosts.indexOf(h), a = (i / Math.max(hosts.length, 1)) * Math.PI * 2 - Math.PI / 2; return [300 + 230 * Math.cos(a), 150 + 110 * Math.sin(a)] as const; };
@@ -43,10 +45,27 @@ export function StoryPlayer({ r }: { r: Report }) {
     const list = sel === 'all' ? [...problems].sort((a, b) => a.t0 - b.t0) : told.filter((f) => f.id === sel);
     return list.flatMap((f) => f.story.map((s) => ({ ...s, finding: f })));
   }, [sel, r]);
-  useEffect(() => { setI(0); setPlay(false); }, [sel]);
+  const bar = useRef<HTMLInputElement>(null), left = useRef<HTMLSpanElement>(null), pos = useRef(0);
+  // Painted straight to the DOM, so a 60 fps slider does not re-render the whole story.
+  const paint = (p: number) => {
+    if (bar.current) { bar.current.value = String(p); bar.current.style.setProperty('--p', `${(p / Math.max(scenes.length, 1)) * 100}%`); }
+    if (left.current) left.current.textContent = `${Math.ceil(((scenes.length - p) * STEP_MS) / 1000)} s left`;
+  };
+  const seek = (p: number) => { pos.current = p; paint(p); setI(Math.min(Math.floor(p), Math.max(scenes.length - 1, 0))); };
+  useEffect(() => { setPlay(false); seek(0); }, [sel]);
   useEffect(() => {
     if (!play) return;
-    const id = setInterval(() => setI((x) => { if (x + 1 >= scenes.length) { setPlay(false); return x; } return x + 1; }), 4200);
+    // A timer, not requestAnimationFrame, so the time left stays true in a throttled tab.
+    let last = performance.now();
+    const id = setInterval(() => {
+      const now = performance.now();
+      pos.current += (now - last) / STEP_MS;
+      last = now;
+      if (pos.current >= scenes.length) { clearInterval(id); seek(scenes.length); setPlay(false); return; }
+      paint(pos.current);
+      const n = Math.floor(pos.current);
+      setI((x) => (x === n ? x : n));
+    }, 33);
     return () => clearInterval(id);
   }, [play, scenes.length]);
   const s = scenes[i];
@@ -64,11 +83,12 @@ export function StoryPlayer({ r }: { r: Report }) {
       <div className="story-l">
         <p className="sm" style={{ margin: 0 }}>{s.finding.title}, step {i + 1} of {scenes.length}</p>
         <div className="story-g"><Graph s={s} reduced={reduced} known={known} /></div>
-        <input type="range" min={0} max={scenes.length - 1} value={i} aria-label="Story position" onChange={(e) => { setPlay(false); setI(+e.target.value); }} />
-        <div className="mono" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 13 }}>
-          <Hv onClick={() => setI(Math.max(0, i - 1))}>Back</Hv>
-          <Hv onClick={() => setPlay(!play)}>{play ? 'Pause' : 'Play'}</Hv>
-          <Hv onClick={() => setI(Math.min(scenes.length - 1, i + 1))}>Next</Hv>
+        <input ref={bar} type="range" min={0} max={scenes.length} step={0.01} defaultValue={0} aria-label="Story position" onChange={(e) => { setPlay(false); seek(+e.target.value); }} />
+        <div className="mono" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24, fontSize: 13 }}>
+          <Hv onClick={() => seek(Math.max(0, i - 1))}>Back</Hv>
+          <Hv onClick={() => { if (pos.current >= scenes.length) seek(0); setPlay(!play); }}>{play ? 'Pause' : 'Play'}</Hv>
+          <Hv onClick={() => seek(Math.min(scenes.length - 1, i + 1))}>Next</Hv>
+          <span ref={left} className="sm" style={{ marginLeft: 'auto' }} />
         </div>
       </div>
       <div className="story-r" data-lenis-prevent>
@@ -79,8 +99,8 @@ export function StoryPlayer({ r }: { r: Report }) {
         <p style={{ lineHeight: 1.5 }}><span className="sm">In real life: </span>{s.finding.analogy}</p>
         {told.length > 1 && <div style={{ marginTop: 16 }}>
           <p className="sm">Choose a story</p>
-          {problems.length > 1 && <button type="button" className={`rowbtn ${sel === 'all' ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr', padding: '8px 0' }} onClick={() => setSel('all')}>Play whole incident</button>}
-          {told.map((f) => <button type="button" key={f.id} className={`rowbtn ${sel === f.id ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr', padding: '8px 0' }} onClick={() => setSel(f.id)}>{f.title}</button>)}
+          {problems.length > 1 && <button type="button" className={`rowbtn pick ${sel === 'all' ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr' }} onClick={() => setSel('all')}>Play whole incident</button>}
+          {told.map((f) => <button type="button" key={f.id} className={`rowbtn pick ${sel === f.id ? 'on' : ''}`} style={{ gridTemplateColumns: '1fr' }} onClick={() => setSel(f.id)}>{f.title}</button>)}
         </div>}
       </div>
     </div>

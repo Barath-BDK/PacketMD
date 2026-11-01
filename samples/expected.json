@@ -174,19 +174,5 @@
     ],
     "allowed": [],
     "note": "Could be a spoof or a bad DHCP lease: the evidence does not settle it"
-  },
-  "fix-demo-1-attack": {
-    "findings": [
-      "arp-spoof"
-    ],
-    "allowed": [],
-    "note": "Before: an attacker poisons the gateway address. Open this one first"
-  },
-  "fix-demo-2-after-fix": {
-    "findings": [],
-    "allowed": [
-      "benign"
-    ],
-    "note": "After: same network with the attacker removed. Use it in Verify fix"
   }
 }

@@ -100,7 +100,7 @@ function Activity({ r }: { r: Report }) {
 function VerifyFix({ r }: { r: Report }) {
   const input = useRef<HTMLInputElement>(null);
   // Only captures with a true before and after pair offer the one-click comparison.
-  const after = ({ 'fix-demo-1-attack.pcap': 'fix-demo-2-after-fix.pcap', 'mixed-incident.pcap': 'mixed-incident-after-fix.pcap' } as Record<string, string>)[r.defense.fileName];
+  const after = ({ 'mixed-incident.pcap': 'mixed-incident-after-fix.pcap' } as Record<string, string>)[r.defense.fileName];
   const [rows, setRows] = useState<ReturnType<typeof diffReports> | null>(null);
   const [msg, setMsg] = useState('');
   const check = async (f: File) => {

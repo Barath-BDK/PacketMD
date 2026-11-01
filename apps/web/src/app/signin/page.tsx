@@ -58,12 +58,12 @@ export default function SignIn() {
   const card = useRef<HTMLDivElement>(null), body = useRef<HTMLFormElement>(null);
   // The card resizes and its contents slide across, so the page itself never changes.
   const switchTo = (m: 'login' | 'create') => {
-    const el = card.current, from = el?.offsetHeight ?? 0;
+    const el = card.current, from = el?.offsetHeight ?? 0, fromW = el?.offsetWidth ?? 0;
     flushSync(() => { setMode(m); setMsg(''); setPw(''); setPw2(''); });
     if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const to = el.offsetHeight, ease = 'cubic-bezier(.3, .7, .2, 1)', dx = m === 'create' ? 22 : -22;
+    const to = el.offsetHeight, toW = el.offsetWidth, ease = 'cubic-bezier(.3, .7, .2, 1)', dx = m === 'create' ? 22 : -22;
     el.style.overflow = 'hidden';
-    el.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 340, easing: ease }).onfinish = () => { el.style.overflow = ''; };
+    el.animate([{ height: `${from}px`, width: `${fromW}px` }, { height: `${to}px`, width: `${toW}px` }], { duration: 340, easing: ease }).onfinish = () => { el.style.overflow = ''; };
     body.current?.animate([{ opacity: 0, transform: `translateX(${dx}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: ease });
   };
   const ready = !creating || (passwordOk(pw, email) && pw === pw2);
@@ -81,15 +81,19 @@ export default function SignIn() {
 
   return (
     <div className="sign">
-      <div ref={card} className="card rise d1" data-safe="text">
+      <div ref={card} className={`card rise d1 ${creating && !user ? 'wide' : ''}`} data-safe="text">
         {!hasBackend && <p style={{ margin: 0, lineHeight: 1.5 }}>Accounts are not configured on this copy. Everything except saved reports and share links works as a guest.</p>}
         {hasBackend && !user && <form ref={body} onSubmit={(e) => { e.preventDefault(); void submit(); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h1 className="disp h2" style={{ margin: 0 }}>{creating ? 'Create an account' : 'Log in'}</h1>
+          <div className={creating ? 'auth-grid' : ''}>
+          <div className="auth-fields">
           <label className="sm">Email<input className="cr-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           <Password label="Password" value={pw} onChange={setPw} auto={creating ? 'new-password' : 'current-password'} placeholder={creating ? 'At least 12 characters' : undefined} describedBy={creating ? 'pw-rules' : undefined} />
           {creating && <Password label="Confirm password" value={pw2} onChange={setPw2} auto="new-password" />}
+          </div>
           {creating && <Checklist pw={pw} pw2={pw2} email={email} />}
-          <Scan type="submit" disabled={busy || !ready}>{creating ? 'Create account' : 'Log in'}</Scan>
+          </div>
+          <Scan tight={creating} type="submit" disabled={busy || !ready}>{creating ? 'Create account' : 'Log in'}</Scan>
           <p style={{ margin: 0, fontSize: 15, textAlign: 'center' }}>
             {creating ? 'Already have an account? ' : "Don't have an account? "}
             <button type="button" className="cr-btn ac" style={{ textDecoration: 'underline', fontWeight: 600 }} onClick={() => switchTo(creating ? 'login' : 'create')}>{creating ? 'Log in' : 'Create one'}</button>
@@ -102,7 +106,7 @@ export default function SignIn() {
           <Hv onClick={() => sb?.auth.signOut().then(() => { setUser(null); setRole(null); })}>Log out</Hv>
         </>}
         {msg && <p role="status" className="ac" style={{ margin: 0 }}>{msg}</p>}
-        <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.5, textAlign: 'center' }}>No account is needed to scan a file. Accounts keep your reports.</p>
+        {!creating && <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.5, textAlign: 'center' }}>No account is needed to scan a file. Accounts keep your reports.</p>}
       </div>
     </div>
   );
