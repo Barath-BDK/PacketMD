@@ -112,7 +112,7 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); f
 .solid { background: var(--panel) }
 .hero + section { content-visibility: auto; contain-intrinsic-size: auto 900px }
 .rule { border-bottom: 1px solid var(--line) }
-.tabbar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 6px 22px; padding: 8px 0; background: var(--panel); border-bottom: 1px solid var(--line) }
+.tabbar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 6px 22px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line) }
 .tabs { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; align-items: center; gap: 6px 22px; font-family: var(--font-mono), monospace; font-size: 13px }
 .tab, .under, .nav button { white-space: nowrap }
 .tabbar .levels { flex: none }
@@ -275,7 +275,55 @@ input[type=range]::-moz-range-thumb { width: 10px; height: 16px; border: 0; bord
   .hero, .sign, .center { min-height: calc(100dvh - 120px) }
   .pad { padding-top: 28px }
   .strip { display: none }
-  
+  /* Tables scroll inside their box here, so words and addresses stay whole. */
+  table.t td { overflow-wrap: normal }
+  table.t td.dat, .lane { white-space: nowrap }
+}
+
+/* Anything used by finger: a comfortable target, and 16px inputs so iPhones do not zoom in on focus. */
+@media (max-width: 860px), (pointer: coarse) {
+  .cr-input { font-size: 16px !important }
+  .chip { min-width: 40px; min-height: 40px; padding: 8px 2px; margin-right: 6px; display: inline-flex; align-items: center; justify-content: center }
+  .story-l .hv, .veil .hv { padding: 11px 6px; min-width: 44px }
+  .page .hv:not(.tab):not(.under) { padding-block: 11px }
+  summary { padding: 10px 0 }
+  .veil li label { min-height: 36px; align-items: center !important }
+  .tech { padding: 8px 0 }
+  .link { min-width: 44px; text-align: center }
+  .pk .tw { transition: none }
+}
+
+/* The smallest phones still fit every menu item without sideways scrolling. */
+@media (max-width: 360px) {
+  .head { padding-inline: 12px }
+  .nav { gap: 2px 9px }
+  .head nav.nav .hv { font-size: 11px }
+}
+
+/* Small screens have no room for eight columns, so each packet takes two lines and nothing scrolls sideways. */
+.pk-wide { min-width: 780px }
+@media (max-width: 860px) {
+  .pk-wide { min-width: 0 }
+  .pk-head { display: none }
+  .pk { grid-template-columns: 14px 46px minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 20px 20px; align-content: center; gap: 0 8px; height: 46px; line-height: 20px; border-bottom: 1px solid var(--line) }
+  .pk > :nth-child(1) { grid-area: 1 / 1 }
+  .pk > :nth-child(2) { grid-area: 1 / 2 }
+  .pk > :nth-child(3), .pk > :nth-child(7) { display: none }
+  .pk > :nth-child(4) { grid-area: 1 / 3 }
+  .pk > :nth-child(5) { grid-area: 1 / 4 }
+  .pk > :nth-child(6) { grid-area: 2 / 2 }
+  .pk > :nth-child(8) { grid-area: 2 / 3 / auto / span 2 }
+  .pk-detail { padding: 10px; gap: 12px; align-content: start }
+  .hex { font-size: 11px }
+}
+
+/* A phone on its side is short, so the header takes one line and the tabs scroll away with the page. */
+@media (max-height: 500px) {
+  .tabbar { position: static }
+  .head { flex-wrap: nowrap; padding-block: 6px }
+  .head nav.nav { order: 0; width: auto; flex: 1 1 auto; justify-content: flex-end; gap: 2px 16px }
+  .head > .nav > .mt { margin-left: 0 }
+  .hero, .sign, .center { min-height: auto }
 }
 @media (prefers-reduced-motion: reduce) {
   .rise, .flip, .pk-detail, .panel.entering { animation: none }

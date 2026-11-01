@@ -68,13 +68,13 @@ export default function Methodology() {
       <section className="veil" style={{ padding: 24, marginTop: 24 }}>
         <h2 className="disp h3">Budgets and thresholds</h2>
         <div className="grid-2">
-          <table className="t"><tbody>{Object.entries(BUDGET).map(([k, v]) => <tr key={k}><td className="dat">{k}</td><td className="dat">{v}</td></tr>)}</tbody></table>
-          <table className="t"><tbody>{Object.entries(T).map(([k, v]) => <tr key={k}><td className="dat">{k}</td><td className="dat">{v}</td></tr>)}</tbody></table>
+          <div style={{ overflowX: 'auto' }}><table className="t"><tbody>{Object.entries(BUDGET).map(([k, v]) => <tr key={k}><td className="dat">{k}</td><td className="dat">{v}</td></tr>)}</tbody></table></div>
+          <div style={{ overflowX: 'auto' }}><table className="t"><tbody>{Object.entries(T).map(([k, v]) => <tr key={k}><td className="dat">{k}</td><td className="dat">{v}</td></tr>)}</tbody></table></div>
         </div>
       </section>
       <section className="veil" style={{ padding: 24, marginTop: 24 }}>
         <h2 className="disp h3">Libraries</h2>
-        <table className="t"><tbody>{LIBS.map(([n, w, l]) => <tr key={n}><td>{n}</td><td>{w}</td><td className="dat">{l}</td></tr>)}</tbody></table>
+        <div style={{ overflowX: 'auto' }}><table className="t"><tbody>{LIBS.map(([n, w, l]) => <tr key={n}><td>{n}</td><td>{w}</td><td className="dat">{l}</td></tr>)}</tbody></table></div>
         <p className="muted" style={{ lineHeight: 1.5 }}>Parsing, decoding, detection and diagnosis are our own code. Wireshark, tshark, Zeek and Suricata are not used or wrapped.</p>
       </section>
     </div>

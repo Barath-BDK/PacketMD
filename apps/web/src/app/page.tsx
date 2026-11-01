@@ -24,7 +24,7 @@ export default function Home() {
         <div className="rise d3 mono" data-safe="text" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 32, width: 'max-content', maxWidth: '100%', fontSize: 14 }}>
           <Scan onClick={() => input.current?.click()} disabled={!!c.busy}>{over ? 'Drop to scan' : 'Open a capture'}</Scan>
           {demo && <Hv className="under" onClick={() => void run(c.openSample(demo.file))} disabled={!!c.busy} style={{ borderBottomColor: 'var(--muted)', padding: '10px 0' }}>Try the mixed incident</Hv>}
-          <input ref={input} type="file" accept=".pcap,.pcapng" hidden aria-label="Choose a capture file" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void run(c.open(f)); }} />
+          <input ref={input} type="file" hidden aria-label="Choose a capture file" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void run(c.open(f)); }} />
         </div>
         <div aria-live="polite" className="sm" data-safe="text" style={{ minHeight: 20 }}>
           {c.busy && <span>Scanning {c.busy}: {STEPS[Math.min(STEPS.length - 1, Math.floor(c.progress * STEPS.length))]}</span>}

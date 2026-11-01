@@ -116,7 +116,7 @@ function VerifyFix({ r }: { r: Report }) {
         <Scan tight onClick={() => input.current?.click()}>Open the after capture</Scan>
         {after && <Hv onClick={async () => { const b = await fetch(`/samples/${after}`).then((x) => x.blob()); void check(new File([b], after)); }}>Use the lab after-fix sample</Hv>}
       </div>
-      <input ref={input} type="file" accept=".pcap,.pcapng" hidden aria-label="Choose the second capture" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void check(f); }} />
+      <input ref={input} type="file" hidden aria-label="Choose the second capture" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void check(f); }} />
       {msg && <p className="sm" role="status">{msg}</p>}
       {rows && <table className="t" style={{ marginTop: 16 }}><thead><tr><th scope="col">Finding</th><th scope="col">Result</th></tr></thead><tbody>{rows.map((x, i) => <tr key={i}><td>{x.title}</td><td className={x.status === 'RESOLVED' ? '' : 'ac'} style={{ fontWeight: 600 }}>{x.status}</td></tr>)}{!rows.length && <tr><td colSpan={2}>Neither capture has a finding.</td></tr>}</tbody></table>}
     </div>

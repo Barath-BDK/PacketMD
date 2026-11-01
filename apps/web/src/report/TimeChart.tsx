@@ -73,10 +73,10 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
       <div className="chart-grid">
         <div className="dat" aria-hidden="true" style={{ height: H, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'right' }}><span>{fmtV(max)}</span><span>{fmtV(Math.round(max / 2))}</span><span>0</span></div>
         <div>
-          <div ref={area} className="chart" role="img" aria-label={`${metric === 'pkts' ? 'Packets' : 'Bytes'} over time. Red shows proof packets.`} style={{ height: H, borderBottom: '1px solid var(--bar)', borderTop: '1px dashed var(--line)' }}
+          <div ref={area} className="chart" role="img" aria-label={`${metric === 'pkts' ? 'Packets' : 'Bytes'} over time. Red shows proof packets.`} style={{ height: H, borderBottom: '1px solid var(--bar)', borderTop: '1px dashed var(--line)', touchAction: 'pan-y' }}
             onPointerDown={(e) => { const x = frac(e); setDrag([x, x]); e.currentTarget.setPointerCapture(e.pointerId); }}
             onPointerMove={(e) => { const x = frac(e); setTip({ x, i: Math.min(bins - 1, Math.floor(x * bins)) }); if (drag) setDrag([drag[0], x]); }}
-            onPointerUp={up} onPointerLeave={() => setTip(null)}>
+            onPointerUp={up} onPointerCancel={() => { setDrag(null); setTip(null); }} onPointerLeave={() => setTip(null)}>
             <div className="chart-bars">
               {data.map((d, i) => <div key={i}>
                 {d.all > d.hot && <i style={{ height: `${((d.all - d.hot) / max) * 100}%` }} />}
@@ -89,9 +89,9 @@ export function TimeChart({ r, compact }: { r: Report; compact?: boolean }) {
           <div className="dat axis" aria-hidden="true">{[0, 0.25, 0.5, 0.75, 1].map((f) => <span key={f}>{stamp(a + f * (b - a))}</span>)}</div>
         </div>
       </div>
-      <p className="sm" style={{ marginBottom: compact ? 0 : undefined }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? (r.rows.length ? 'Click a bar to open its packets.' : '') : `Drag across the chart to zoom in.${r.rows.length ? ' Click a bar to open its packets.' : ''}`}</p>
+      <p className="sm" style={{ marginBottom: compact ? 0 : undefined }}>{r.defense.packets} packets over {span.toFixed(1)} s. Red is proof packets. {compact ? (r.rows.length ? 'Pick a bar to open its packets.' : '') : `Drag across the chart to zoom in.${r.rows.length ? ' Pick a bar to open its packets.' : ''}`}</p>
       {!compact && shown.length > 0 && <div role="group" aria-label="Problems in this capture">
-        <h3 className="sm" style={{ margin: '16px 0 4px' }}>Click a problem to focus on it</h3>
+        <h3 className="sm" style={{ margin: '16px 0 4px' }}>Pick a problem to focus on it</h3>
         {shown.map((f) => <button type="button" key={f.id} className="tl-prob" aria-pressed={focus === f.id} onClick={() => pick(f)}>
           <span>{f.title}</span><span className="dat">{stampAbs(f.t0)} to {stampAbs(f.t1)}</span><Lane l={f.lane} />
         </button>)}

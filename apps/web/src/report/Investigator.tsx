@@ -4,7 +4,7 @@ import { FILTER_MAX_CHARS, FilterError, locator, parseFilter, type Evidence, typ
 import { useCase } from '@/lib/engine';
 import { Copy } from './parts';
 
-const ROW = 26, VIEW = 600, DETAIL = 400;
+const VIEW = 600;
 
 function Tree({ nodes, sel, pick }: { nodes: TreeNode[]; sel: TreeNode | null; pick(n: TreeNode): void }) {
   return <ul>{nodes.map((n, i) => <li key={i}><button type="button" className={`cr-btn ${sel === n ? 'on' : ''}`} onClick={() => pick(n)}>{n.label}</button>{n.children?.length ? <Tree nodes={n.children} sel={sel} pick={pick} /> : null}</li>)}</ul>;
@@ -42,6 +42,15 @@ export function Investigator({ r }: { r: Report }) {
   const [goTo, setGoTo] = useState('');
   const [wall, setWall] = useState(false);
   const list = useRef<HTMLDivElement>(null);
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const m = matchMedia('(max-width: 860px)'), on = () => setPhone(m.matches);
+    on();
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  // These match the row height in globals.css, because the list only draws the rows on screen.
+  const ROW = phone ? 46 : 26, DETAIL = phone ? 560 : 400;
 
   const rows = useMemo(() => {
     try { const t = parseFilter(q, { findings: r.findings }); setErr(''); return r.rows.filter(t); }
@@ -95,7 +104,7 @@ export function Investigator({ r }: { r: Report }) {
       <div className="inv-top">
         <div>
           <label className="sm" htmlFor="pk-filter">Filter packets</label>
-          <input id="pk-filter" list="pk-fields" className="cr-input mono" maxLength={FILTER_MAX_CHARS} aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66 and proto == ARP" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
+          <input id="pk-filter" list="pk-fields" className="cr-input mono" maxLength={FILTER_MAX_CHARS} aria-invalid={!!err} placeholder="ip.addr == 192.168.1.66" value={q} spellCheck={false} onChange={(e) => { setQ(e.target.value); setTop(0); if (list.current) list.current.scrollTop = 0; }} style={{ fontSize: 14 }} />
         </div>
         <form onSubmit={(e) => { e.preventDefault(); jumpTo(+goTo); }}>
           <label className="sm" htmlFor="pk-go">Go to packet</label>
@@ -103,10 +112,10 @@ export function Investigator({ r }: { r: Report }) {
         </form>
       </div>
       <div className="flt" role="group" aria-label="Quick filters">{quick.map(([l, f]) => <button type="button" key={f} className="btn" aria-pressed={q === f} onClick={() => { setQ(q === f ? '' : f); setTop(0); if (list.current) list.current.scrollTop = 0; }}>{l}</button>)}</div>
-      <p className={err ? 'ac sm' : 'sm'} role="status" style={{ margin: '6px 0' }}>{err || `${rows.length} of ${r.rows.length} packets. Click a packet to open its details.`}</p>
+      <p className={err ? 'ac sm' : 'sm'} role="status" style={{ margin: '6px 0' }}>{err || `${rows.length} of ${r.rows.length} packets. Pick a packet to open its details.`}</p>
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: 780 }}>
-          <div className="pk" style={{ color: 'var(--small)' }}><span /><span>No.</span><button type="button" className="cr-btn st" aria-label="Switch time format" onClick={() => setWall(!wall)} style={{ pointerEvents: 'auto', textAlign: 'left' }}>{wall ? 'Clock' : 'Time'}</button><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span></div>
+        <div className="pk-wide">
+          <div className="pk pk-head" style={{ color: 'var(--small)' }}><span /><span>No.</span><button type="button" className="cr-btn st" aria-label="Switch time format" onClick={() => setWall(!wall)} style={{ pointerEvents: 'auto', textAlign: 'left' }}>{wall ? 'Clock' : 'Time'}</button><span>Source</span><span>Destination</span><span>Proto</span><span>Len</span><span>Info</span></div>
           <div ref={list} data-lenis-prevent onScroll={(e) => setTop(e.currentTarget.scrollTop)} style={{ height: 'min(' + VIEW + 'px, calc(100vh - 300px))', minHeight: 320, overflowY: 'auto', position: 'relative' }}>
             <div style={{ height: rows.length * ROW + (open >= 0 ? DETAIL : 0), position: 'relative' }}>
               {slice.map((p) => {
